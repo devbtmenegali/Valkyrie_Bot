@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.env
+.DS_Store
+credentials.json
+token.json
+scripts/token.json
+whatsapp_gateway/node_modules/
+whatsapp_gateway/.wwebjs_auth/
