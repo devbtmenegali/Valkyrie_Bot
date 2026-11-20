@@ -10,12 +10,13 @@ import crypto from "node:crypto";
 import { execFile, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { sendWhatsAppMessage } from "../whatsapp/send.mjs";
-import { runValkyrieAI, runSimplePromptAI, getConfiguredProviders, loadMemoryFacts } from "./brain.mjs";
+import { runValkyrieAI, runSimplePromptAI, getConfiguredProviders, loadMemoryFacts, saveMemoryFact } from "./brain.mjs";
 import { getHolidayInfo } from "./holidays.mjs";
 import { fetchCalendarEvents } from "./calendar.mjs";
 import { listContacts, upsertContact, getUpcomingBirthdays, buildSupplierMessage } from "./skills/contacts.mjs";
 import { listFinance, addFinanceEntry, markFinancePaid, getFinanceSummary, buildCollectionMessage } from "./skills/finance.mjs";
 import { LANGUAGE_VOICES, getLanguageCoachPrompt, listLanguageSessions, logLanguageSession } from "./skills/languages.mjs";
+import { fetchLiveNews, loadCachedRadar, saveCachedRadar, buildRadarPrompt } from "./skills/radar.mjs";
 import {
   isSupabaseEnabled,
   sbCheckReady,
@@ -610,6 +611,7 @@ async function generateValkyrieReply(userText, providerOverride = null) {
             broadcastEvent("inbox_update", { item });
             return item;
           },
+          getStrategicRadar: () => generateOrGetRadar(false),
         },
       });
       return result;
@@ -629,6 +631,27 @@ async function generateValkyrieReply(userText, providerOverride = null) {
     executedTools: ["add_kanban_task"],
     providerUsed: "Modo Local",
   };
+}
+
+async function generateOrGetRadar(forceRefresh = false) {
+  const today = getLocalDateStr(0);
+  const cached = loadCachedRadar(__dirname);
+  if (!forceRefresh && cached && cached.date === today && cached.briefing) {
+    return cached;
+  }
+  const news = await fetchLiveNews();
+  const memories = loadMemoryFacts(MEMORY_PATH);
+  const prompt = buildRadarPrompt(news, memories);
+  let briefing = "Não foi possível gerar a síntese agora, mas as manchetes ao vivo estão listadas abaixo.";
+  let providerUsed = "";
+  try {
+    const ai = await runSimplePromptAI({ preferredProvider, systemPrompt: prompt.system, userText: prompt.user });
+    briefing = ai.reply;
+    providerUsed = ai.providerUsed;
+  } catch {}
+  const result = { date: today, updatedAt: nowTimeStr(), briefing, providerUsed, news };
+  saveCachedRadar(__dirname, result);
+  return result;
 }
 
 // ---------- Proactive Voice + Notification Scheduler ----------
@@ -912,6 +935,30 @@ const server = http.createServer(async (req, res) => {
       topic: body.topic || "Modo Carro",
     });
     return sendJson(res, 200, { ok: true, saved, languageSessions: listLanguageSessions(__dirname).slice(0, 14) });
+  }
+
+  // ---------- Skill Endpoints: Radar Estratégico (Notícias, Oportunidades & Aprendizado) ----------
+  if (req.method === "GET" && url.pathname === "/api/radar") {
+    return sendJson(res, 200, await generateOrGetRadar(false));
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/radar/refresh") {
+    const data = await generateOrGetRadar(true);
+    return sendJson(res, 200, data);
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/radar/feedback") {
+    const body = await readJsonBody(req);
+    const action = body.action || "like";
+    const note = String(body.note || "").trim();
+    if (action === "kanban" && note) {
+      addIdeaToKanban(note, "Radar/Oportunidades");
+      saveMemoryFact(MEMORY_PATH, { pillar: "Radar/Interesses", fact: `Bruno gostou e transformou em tarefa: ${note.slice(0, 140)}` });
+      return sendJson(res, 200, { ok: true, message: "Salvo no Kanban e aprendido na memória!", kanban: parseKanban() });
+    }
+    const label = action === "like" ? "Bruno gostou deste tema/insight" : "Bruno prefere menos conteúdo sobre";
+    saveMemoryFact(MEMORY_PATH, { pillar: "Preferências/Aprendizado", fact: `${label}: ${note.slice(0, 140)}` });
+    return sendJson(res, 200, { ok: true, message: "Aprendizado registrado na memória da Valkyrie!" });
   }
 
   if (req.method === "POST" && url.pathname === "/api/speak/stop") {

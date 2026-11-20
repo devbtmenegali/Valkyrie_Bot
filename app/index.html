@@ -335,6 +335,7 @@
     <header class="topbar">
       <div class="tabs" style="flex-wrap:wrap;">
         <button class="tab-btn active" id="tabChat" onclick="switchTab('chat')">💬 Chat</button>
+        <button class="tab-btn" id="tabRadar" onclick="switchTab('radar')">📡 Radar</button>
         <button class="tab-btn" id="tabCar" onclick="switchTab('car')">🚗 Carro / Idiomas</button>
         <button class="tab-btn" id="tabFinance" onclick="switchTab('finance')">💰 Finanças</button>
         <button class="tab-btn" id="tabContacts" onclick="switchTab('contacts')">👥 Contatos & Loja</button>
@@ -379,6 +380,29 @@
         <input id="chatInput" type="text" placeholder="Digite ou clique no 🎙️ para falar com a Valkyrie..." autocomplete="off" />
         <button type="submit" class="send-btn">Enviar</button>
       </form>
+    </section>
+
+    <!-- Radar Estratégico View (Notícias, Investimentos, Negócios & Aprendizado) -->
+    <section class="view" id="viewRadar">
+      <div style="padding:16px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div>
+            <strong style="font-size:15px;">📡 Radar Estratégico da Valkyrie</strong>
+            <div style="font-size:12px;color:var(--muted);" id="radarMeta">Notícias ao vivo, oportunidades de investimento, ideias de negócio e melhores práticas</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="pill-btn" onclick="speakRadar()">🔊 Ouvir Radar</button>
+            <button class="pill-btn done" onclick="loadRadar(true)">🔄 Atualizar Agora</button>
+          </div>
+        </div>
+        <div class="card" style="padding:16px;font-size:14px;line-height:1.55;white-space:pre-wrap;" id="radarBriefing">Clique em "🔄 Atualizar Agora" para a Valkyrie ler as notícias de hoje e gerar suas oportunidades...</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="pill-btn done" onclick="radarFeedback('like')">👍 Gostei (Aprender)</button>
+          <button class="pill-btn gold" onclick="radarFeedback('kanban')">🚀 Salvar Ideia no Kanban</button>
+          <button class="pill-btn" onclick="radarFeedback('dislike')">👎 Menos disso</button>
+        </div>
+        <div id="radarHeadlines" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;"></div>
+      </div>
     </section>
 
     <!-- Car Mode & Languages View -->
@@ -677,12 +701,48 @@
     }
 
     function switchTab(tab) {
-      const map = { chat: ["tabChat", "viewChat"], car: ["tabCar", "viewCar"], finance: ["tabFinance", "viewFinance"], contacts: ["tabContacts", "viewContacts"], inbox: ["tabInbox", "viewInbox"] };
+      const map = { chat: ["tabChat", "viewChat"], radar: ["tabRadar", "viewRadar"], car: ["tabCar", "viewCar"], finance: ["tabFinance", "viewFinance"], contacts: ["tabContacts", "viewContacts"], inbox: ["tabInbox", "viewInbox"] };
       for (const [k, [tb, vw]] of Object.entries(map)) {
         document.getElementById(tb)?.classList.toggle("active", k === tab);
         document.getElementById(vw)?.classList.toggle("active", k === tab);
       }
       if (tab === "finance" || tab === "contacts") loadSkillsData();
+      if (tab === "radar") loadRadar(false);
+    }
+
+    let currentRadar = null;
+    async function loadRadar(force = false) {
+      document.getElementById("radarBriefing").innerHTML = "<em>📡 Valkyrie lendo manchetes de mercado, imóveis, healthtech e varejo...</em>";
+      const res = await fetch(force ? "/api/radar/refresh" : "/api/radar", { method: force ? "POST" : "GET" });
+      if (!res.ok) return;
+      currentRadar = await res.json();
+      document.getElementById("radarMeta").textContent = `Atualizado hoje às ${currentRadar.updatedAt || "—"} ${currentRadar.providerUsed ? "• " + currentRadar.providerUsed : ""}`;
+      document.getElementById("radarBriefing").innerHTML = renderMarkdownLite(currentRadar.briefing || "");
+      const labels = { mercado: "📈 Mercado & Investimentos", imoveis_ma: "🏢 Imóveis, Leilões & M&A", healthtech: "🏥 HealthTech & IA", varejo: "🏠 Varejo & Negócios" };
+      document.getElementById("radarHeadlines").innerHTML = Object.entries(currentRadar.news || {}).map(([k, list]) => `
+        <div class="card">
+          <div class="card-title"><span>${labels[k] || k}</span></div>
+          ${(list || []).map((n) => `<div style="margin-bottom:7px;font-size:12px;line-height:1.35;"><a href="${escapeHtml(n.link)}" target="_blank" style="color:var(--text);text-decoration:none;">• ${escapeHtml(n.title)}</a></div>`).join("") || "<small style='color:var(--muted)'>Sem manchetes recentes.</small>"}
+        </div>
+      `).join("");
+    }
+
+    function speakRadar() {
+      if (currentRadar?.briefing) speakText(currentRadar.briefing, "pt");
+    }
+
+    async function radarFeedback(action) {
+      const note = action === "kanban"
+        ? prompt("Qual ideia/oportunidade do Radar você quer transformar em tarefa no Kanban?", (currentRadar?.briefing || "").slice(0, 120))
+        : prompt(action === "like" ? "Qual tema ou insight você gostou para a Valkyrie aprender?" : "O que você prefere ver menos no Radar?", "Oportunidades de investimento e negócios");
+      if (!note) return;
+      const res = await fetch("/api/radar/feedback", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, note }),
+      });
+      const data = await res.json();
+      if (data.kanban && currentState) { currentState.kanban = data.kanban; renderState(currentState); }
+      alert("✅ " + (data.message || "Registrado!"));
     }
 
     // ---------- Skills UI: Car Mode / Languages, Finance & Contacts ----------

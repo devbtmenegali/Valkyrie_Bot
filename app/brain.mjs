@@ -249,6 +249,11 @@ const BASE_TOOLS = [
       required: ["recipient_name", "message"],
     },
   },
+  {
+    name: "get_strategic_radar",
+    description: "Busca notícias reais de hoje (mercado financeiro, leilões/imóveis, healthtech, varejo) e gera oportunidades de investimento, ideias de negócio e melhores práticas personalizadas para o Bruno.",
+    parameters: { type: "object", properties: {} },
+  },
 ];
 
 function toGeminiSchema(schema) {
@@ -362,6 +367,9 @@ function makeToolExecutor({ todayStr, memoryPath, helpers, executedTools }) {
     }
     if (name === "queue_whatsapp_outbound" && helpers.queueOutboundMessage) {
       return { ok: true, queued: await helpers.queueOutboundMessage(args) };
+    }
+    if (name === "get_strategic_radar" && helpers.getStrategicRadar) {
+      return await helpers.getStrategicRadar();
     }
     return { error: `Ferramenta desconhecida: ${name}` };
   };
