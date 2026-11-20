@@ -12,6 +12,16 @@ import { fileURLToPath } from "node:url";
 import { sendWhatsAppMessage } from "../whatsapp/send.mjs";
 import { runValkyrieAI, getConfiguredProviders, loadMemoryFacts } from "./brain.mjs";
 import { getHolidayInfo } from "./holidays.mjs";
+import {
+  isSupabaseEnabled,
+  sbCheckReady,
+  sbLoadMessages,
+  sbAppendMessage,
+  sbGetHabit,
+  sbUpsertHabit,
+  sbGetKV,
+  sbSetKV,
+} from "./db.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..");
@@ -295,7 +305,9 @@ function toggleKanbanLine(lineIndex) {
   if (!m) return false;
   const next = m[1] === "x" ? " " : "x";
   lines[lineIndex] = `- [${next}]${m[2]}`;
-  fs.writeFileSync(KANBAN_PATH, lines.join("\n"), "utf8");
+  const updatedMd = lines.join("\n");
+  fs.writeFileSync(KANBAN_PATH, updatedMd, "utf8");
+  sbSetKV("kanban_md", { markdown: updatedMd }).catch(() => {});
   return true;
 }
 
@@ -306,7 +318,9 @@ function completeKanbanByQuery(query) {
   const idx = lines.findIndex((l) => /^- \[[ /]\]\s+/.test(l) && l.toLowerCase().includes(q));
   if (idx === -1) return { ok: false, error: `Nenhuma tarefa aberta encontrada contendo "${query}"` };
   lines[idx] = lines[idx].replace(/^- \[[ /]\]/, "- [x]");
-  fs.writeFileSync(KANBAN_PATH, lines.join("\n"), "utf8");
+  const updatedMd = lines.join("\n");
+  fs.writeFileSync(KANBAN_PATH, updatedMd, "utf8");
+  sbSetKV("kanban_md", { markdown: updatedMd }).catch(() => {});
   return { ok: true, completed: lines[idx] };
 }
 
@@ -352,6 +366,7 @@ function addIdeaToKanban(text, pillarOverride = null) {
     content = content.trimEnd() + "\n" + entry + "\n";
   }
   fs.writeFileSync(KANBAN_PATH, content, "utf8");
+  sbSetKV("kanban_md", { markdown: content }).catch(() => {});
   return pillar;
 }
 
@@ -471,6 +486,7 @@ function saveTodayHabits(update) {
     content = content.trimEnd() + "\n" + newRow + "\n";
   }
   fs.writeFileSync(HABITS_PATH, content, "utf8");
+  sbUpsertHabit(next).catch(() => {});
   return next;
 }
 
@@ -672,7 +688,8 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "GET" && url.pathname === "/avatar.jpg") return serveStatic(res, path.join(__dirname, "valkyrie-avatar.jpg"), "image/jpeg");
 
   if (req.method === "GET" && url.pathname === "/api/health") {
-    return sendJson(res, 200, { ok: true, service: "valkyrie", cloud: !IS_MAC, time: new Date().toISOString() });
+    const supabaseReady = isSupabaseEnabled() ? await sbCheckReady() : false;
+    return sendJson(res, 200, { ok: true, service: "valkyrie", cloud: !IS_MAC, supabaseReady, time: new Date().toISOString() });
   }
 
   if (req.method === "GET" && url.pathname === "/api/auth/status") {
@@ -720,10 +737,17 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && url.pathname === "/api/state") {
-    const [calToday, calTomorrow] = await Promise.all([
+    // Hidrata do Supabase quando disponível
+    const [calToday, calTomorrow, remoteMsgs, remoteKanban, remoteHabit] = await Promise.all([
       fetchCalendarDate(getLocalDateStr(0)),
       fetchCalendarDate(getLocalDateStr(1)),
+      sbLoadMessages(60),
+      sbGetKV("kanban_md"),
+      sbGetHabit(getLocalDateStr(0)),
     ]);
+    if (remoteKanban?.markdown) fs.writeFileSync(KANBAN_PATH, remoteKanban.markdown, "utf8");
+    const history = remoteMsgs && remoteMsgs.length ? remoteMsgs : loadHistory();
+    const habits = remoteHabit || getTodayHabits();
     return sendJson(res, 200, {
       today: getLocalDateStr(0),
       weekday: getWeekdayInfo(0),
@@ -731,11 +755,12 @@ const server = http.createServer(async (req, res) => {
       calendarTomorrow: calTomorrow,
       conflictsToday: detectConflicts(calToday.events),
       kanban: parseKanban(),
-      habits: getTodayHabits(),
-      history: loadHistory(),
+      habits,
+      history,
       inbox: loadInbox(),
       voiceAlertsEnabled,
       isCloud: !IS_MAC,
+      supabaseEnabled: isSupabaseEnabled(),
       preferredProvider,
       providers: getConfiguredProviders(),
       geminiEnabled: Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY),
@@ -788,13 +813,18 @@ const server = http.createServer(async (req, res) => {
     if (!text) return sendJson(res, 400, { error: "Mensagem vazia" });
 
     const history = loadHistory();
-    history.push({ role: "user", time: nowTimeStr(), text });
+    const userMsg = { role: "user", time: nowTimeStr(), text };
+    history.push(userMsg);
+    sbAppendMessage(userMsg).catch(() => {});
+
     const rawResult = await generateValkyrieReply(text, body.provider || null);
     const reply = typeof rawResult === "string" ? rawResult : rawResult.reply;
     const tools = typeof rawResult === "string" ? [] : (rawResult.executedTools || []);
     const providerUsed = typeof rawResult === "string" ? "Comando Direto" : (rawResult.providerUsed || "");
-    history.push({ role: "valkyrie", time: nowTimeStr(), text: reply, tools, providerUsed });
+    const botMsg = { role: "valkyrie", time: nowTimeStr(), text: reply, tools, providerUsed };
+    history.push(botMsg);
     saveHistory(history);
+    sbAppendMessage(botMsg).catch(() => {});
 
     if (body.speak !== false && voiceAlertsEnabled) {
       speakMac(reply);

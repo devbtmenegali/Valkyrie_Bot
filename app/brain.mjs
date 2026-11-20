@@ -7,6 +7,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { execFile } from "node:child_process";
 import { getHolidayInfo } from "./holidays.mjs";
+import { sbSaveMemory } from "./db.mjs";
 
 const PROVIDERS = {
   gemini: {
@@ -97,6 +98,7 @@ export function saveMemoryFact(memoryPath, { pillar = "Geral", fact }) {
   };
   facts.unshift(entry);
   fs.writeFileSync(memoryPath, JSON.stringify(facts.slice(0, 200), null, 2), "utf8");
+  sbSaveMemory({ pillar, fact: entry.fact }).catch(() => {});
   return entry;
 }
 
