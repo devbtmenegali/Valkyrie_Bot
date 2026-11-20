@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { sendWhatsAppMessage } from "../whatsapp/send.mjs";
 import { runValkyrieAI, runSimplePromptAI, getConfiguredProviders, loadMemoryFacts, saveMemoryFact } from "./brain.mjs";
 import { getHolidayInfo } from "./holidays.mjs";
-import { fetchCalendarEvents } from "./calendar.mjs";
+import { fetchCalendarEvents, processCalendarQueue } from "./calendar.mjs";
 import { listContacts, upsertContact, getUpcomingBirthdays, buildSupplierMessage, searchEvolutionContacts } from "./skills/contacts.mjs";
 import { listFinance, addFinanceEntry, markFinancePaid, getFinanceSummary, buildCollectionMessage } from "./skills/finance.mjs";
 import { LANGUAGE_VOICES, getLanguageCoachPrompt, listLanguageSessions, logLanguageSession } from "./skills/languages.mjs";
@@ -885,6 +885,14 @@ const proactiveEngine = createProactiveEngine({
   },
 });
 proactiveEngine.start();
+
+// Processa fila de alterações de calendário vindas do Mobile/Nuvem (no Mac)
+if (IS_MAC) {
+  setInterval(() => {
+    processCalendarQueue().catch(() => {});
+  }, 8000);
+  processCalendarQueue().catch(() => {});
+}
 
 // ---------- HTTP Helpers & Routes ----------
 function readJsonBody(req) {

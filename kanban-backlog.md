@@ -36,4 +36,4 @@
 
 ## 💡 Pilar 8: Inbox de Ideias (Triagem)
 - [ ] **[Day Trade]** (20/11, 07:45) Hoje é feriano! Não tem Day trade!! Pregão fechado!
-
+- [ ] **[Day Trade]** (20/11, 09:30) Remover meta de Day Trade do dia 20/11/2026 (feriado)

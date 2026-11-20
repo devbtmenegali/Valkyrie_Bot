@@ -91,3 +91,4 @@ Seja objetiva, sem enrolação (máx. 260 palavras).`,
     user: `MANCHETES REAIS DE HOJE:\n${newsText}\n\nPREFERÊNCIAS E MEMÓRIA APRENDIDA DO BRUNO:\n${prefBlock || "- Ainda aprendendo preferências iniciais."}`,
   };
 }
+

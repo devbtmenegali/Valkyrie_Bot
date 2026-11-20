@@ -8,6 +8,7 @@ import crypto from "node:crypto";
 import { execFile } from "node:child_process";
 import { getHolidayInfo } from "./holidays.mjs";
 import { sbSaveMemory } from "./db.mjs";
+import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "./calendar.mjs";
 
 const PROVIDERS = {
   gemini: {
@@ -64,23 +65,6 @@ export function getConfiguredProviders() {
 
 function getKeyFor(p) {
   return process.env[p.envKey] || (p.altEnvKey ? process.env[p.altEnvKey] : "") || "";
-}
-
-function runGCalendar(args) {
-  return new Promise((resolve) => {
-    const bins = [
-      "gcalendar",
-      path.join(process.env.HOME || "", ".gemini/antigravity/bin/gcalendar"),
-    ];
-    const next = (i) => {
-      if (i >= bins.length) return resolve({ ok: false, error: "gcalendar CLI não encontrado" });
-      execFile(bins[i], args, { timeout: 15000 }, (err, stdout, stderr) => {
-        if (err) return next(i + 1);
-        resolve({ ok: true, stdout: stdout || "", stderr: stderr || "" });
-      });
-    };
-    next(0);
-  });
 }
 
 export function loadMemoryFacts(memoryPath) {
@@ -427,32 +411,34 @@ function makeToolExecutor({ todayStr, memoryPath, helpers, executedTools }) {
       return await helpers.fetchCalendarDate(args.date || todayStr);
     }
     if (name === "create_calendar_event") {
-      const cmdArgs = [
-        "mutate", "create",
-        "--summary", String(args.summary || "Compromisso"),
-        "--start", String(args.start || ""),
-        "--end", String(args.end || ""),
-        "--send-updates", "none",
-      ];
-      if (args.description) cmdArgs.push("--description", String(args.description));
-      const res = await runGCalendar(cmdArgs);
-      if (res.ok) await helpers.fetchCalendarDate(String(args.start || todayStr).slice(0, 10));
-      return res.ok ? { ok: true, output: res.stdout.trim() } : { ok: false, error: "A escrita no Google Calendar funciona pelo app do Mac (gcalendar CLI não disponível na nuvem ainda)." };
+      const res = await createCalendarEvent({
+        summary: args.summary,
+        start: args.start,
+        end: args.end,
+        description: args.description,
+      });
+      await helpers.fetchCalendarDate(String(args.start || todayStr).slice(0, 10));
+      return res;
     }
     if (name === "update_calendar_event") {
-      const cmdArgs = ["mutate", "update", String(args.event_id || ""), "--send-updates", "none"];
-      if (args.summary) cmdArgs.push("--summary", String(args.summary));
-      if (args.start) cmdArgs.push("--start", String(args.start));
-      if (args.end) cmdArgs.push("--end", String(args.end));
-      if (args.description) cmdArgs.push("--description", String(args.description));
-      const res = await runGCalendar(cmdArgs);
-      if (res.ok) await helpers.fetchCalendarDate(String(args.start || todayStr).slice(0, 10));
-      return res.ok ? { ok: true, output: res.stdout.trim() } : { ok: false, error: "A edição no Google Calendar funciona pelo app do Mac (gcalendar CLI não disponível na nuvem ainda)." };
+      const res = await updateCalendarEvent({
+        eventId: args.event_id,
+        summary: args.summary,
+        start: args.start,
+        end: args.end,
+        description: args.description,
+        dateStr: (args.start ? String(args.start).slice(0, 10) : "") || todayStr,
+      });
+      await helpers.fetchCalendarDate(String(args.start || todayStr).slice(0, 10));
+      return res;
     }
     if (name === "delete_calendar_event") {
-      const res = await runGCalendar(["mutate", "delete", String(args.event_id || ""), "--send-updates", "none"]);
-      if (res.ok) await helpers.fetchCalendarDate(todayStr);
-      return res.ok ? { ok: true, output: res.stdout.trim() } : { ok: false, error: "A remoção no Google Calendar funciona pelo app do Mac (gcalendar CLI não disponível na nuvem ainda)." };
+      const res = await deleteCalendarEvent({
+        eventId: args.event_id,
+        dateStr: todayStr,
+      });
+      await helpers.fetchCalendarDate(todayStr);
+      return res;
     }
     if (name === "list_kanban_tasks") {
       const all = helpers.parseKanban();

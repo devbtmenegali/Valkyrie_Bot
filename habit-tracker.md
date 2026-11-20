@@ -13,4 +13,4 @@
 | Data | Dia | Treino | Leitura (30m) | Day Trade (Meta R$ 500) | Notas |
 | :--- | :--- | :---: | :---: | :---: | :--- |
 | 2026-11-19 | Qui | ⬜ Jiu-Jitsu | ⬜ | ✅ 418 | Aula UNISUL 12K (17h) e UNISUL (19h) |
-
+| 2026-11-20 | Sex | ⬜ Jiu-Jitsu | ⬜ | ❌ Feriado - B3 fechada | Remover meta de Day Trade do dia 20/11/2026 |

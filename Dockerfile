@@ -23,3 +23,4 @@ ENV PORT=3780
 EXPOSE 3780
 
 CMD ["node", "app/server.mjs"]
+

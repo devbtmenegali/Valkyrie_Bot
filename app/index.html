@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#0b0f14" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Kyrie" />
+  <meta name="apple-mobile-web-app-title" content="Valkyrie" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" type="image/jpeg" href="/avatar.jpg?v=viking" />
   <link rel="apple-touch-icon" href="/avatar.jpg?v=viking" />
-  <title>Kyrie — Secretária Executiva</title>
+  <title>Valkyrie — Secretária Executiva</title>
   <style>
     :root {
       --bg: #0b0f14;
@@ -265,9 +265,52 @@
     .wa-sent-note { font-size: 12px; color: var(--accent); }
     .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); font-size: 13.5px; line-height: 1.6; }
 
+    .mobile-nav { display: none; }
+    .drawer-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 40; }
+    .drawer-backdrop.open { display: block; }
+    .mobile-menu-btn { display: none; }
+
     @media (max-width: 860px) {
-      body { grid-template-columns: 1fr; }
-      .sidebar { display: none; }
+      body { grid-template-columns: 1fr; height: 100dvh; }
+      .sidebar {
+        display: flex;
+        position: fixed;
+        top: 0; left: 0; bottom: 0;
+        width: 86vw; max-width: 340px;
+        z-index: 50;
+        transform: translateX(-105%);
+        transition: transform 0.25s ease;
+        padding-top: calc(16px + env(safe-area-inset-top));
+        padding-bottom: calc(20px + env(safe-area-inset-bottom));
+      }
+      .sidebar.open { transform: translateX(0); }
+      .main { height: 100dvh; padding-top: env(safe-area-inset-top); }
+      .topbar { padding: 10px 12px; gap: 6px; }
+      .tabs { display: none; }
+      .mobile-menu-btn { display: inline-flex; align-items: center; gap: 6px; }
+      .messages { padding: 14px 12px; }
+      .msg { max-width: 86%; font-size: 14.5px; }
+      .quick-bar { padding: 6px 12px 0; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+      .quick-chip { white-space: nowrap; flex-shrink: 0; }
+      .composer { padding: 10px 12px 10px; }
+      .composer input { font-size: 16px; } /* Evita zoom automático do iOS Safari */
+      #viewFinance form, #viewContacts form { grid-template-columns: 1fr 1fr !important; }
+      #viewFinance form button, #viewContacts form button { grid-column: 1 / -1; }
+      .mobile-nav {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        background: var(--panel);
+        border-top: 1px solid var(--border);
+        padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+        gap: 2px;
+      }
+      .mnav-btn {
+        background: transparent; border: none; color: var(--muted);
+        display: flex; flex-direction: column; align-items: center; gap: 2px;
+        font-size: 10px; font-weight: 600; padding: 5px 2px; border-radius: 8px; cursor: pointer;
+      }
+      .mnav-btn span.ico { font-size: 17px; line-height: 1; }
+      .mnav-btn.active { color: var(--accent); background: var(--accent-soft); }
     }
   </style>
 </head>
@@ -276,7 +319,7 @@
     <form onsubmit="submitPin(event)" style="background:#121821;border:1px solid #243041;border-radius:18px;padding:28px;width:320px;text-align:center;display:flex;flex-direction:column;gap:14px;">
       <img src="/avatar.jpg?v=viking" alt="Valkyrie" style="width:84px;height:84px;border-radius:50%;object-fit:cover;margin:0 auto;border:2px solid #10b981;" />
       <div>
-        <div style="font-size:17px;font-weight:700;">KYRIE</div>
+        <div style="font-size:17px;font-weight:700;">VALKYRIE</div>
         <div style="font-size:12px;color:#8fa0b5;margin-top:3px;">Acesso Privado — Bruno Menegali</div>
       </div>
       <input id="pinInput" type="password" placeholder="Digite seu PIN de acesso" autocomplete="current-password" style="background:#0b0f14;border:1px solid #243041;color:#e8edf4;padding:11px 14px;border-radius:10px;font-size:14px;text-align:center;outline:none;" />
@@ -284,13 +327,15 @@
       <button type="submit" style="background:#10b981;color:#04150f;border:none;padding:11px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;">Entrar</button>
     </form>
   </div>
-  <aside class="sidebar">
+  <div class="drawer-backdrop" id="drawerBackdrop" onclick="toggleDrawer(false)"></div>
+  <audio id="kyrieAudio" playsinline style="display:none;"></audio>
+  <aside class="sidebar" id="sidebarPanel">
     <div class="hero-card">
       <div class="avatar-ring" id="avatarRing">
         <img src="/avatar.jpg?v=viking" alt="Valkyrie" />
       </div>
       <div>
-        <div class="hero-name">KYRIE</div>
+        <div class="hero-name">VALKYRIE</div>
         <div class="hero-status" id="heroStatus"><span class="dot"></span> Pronta para você, Bruno</div>
       </div>
       <div class="hero-controls">
@@ -333,6 +378,10 @@
 
   <main class="main">
     <header class="topbar">
+      <button class="tool-btn mobile-menu-btn" onclick="toggleDrawer(true)">
+        <img src="/avatar.jpg?v=viking" alt="Kyrie" style="width:22px;height:22px;border-radius:50%;object-fit:cover;" />
+        <span>☰ Kyrie</span>
+      </button>
       <div class="tabs" style="flex-wrap:wrap;">
         <button class="tab-btn active" id="tabChat" onclick="switchTab('chat')">💬 Chat</button>
         <button class="tab-btn" id="tabRadar" onclick="switchTab('radar')">📡 Radar</button>
@@ -377,8 +426,8 @@
         <button class="quick-chip" onclick="sendQuick('/trade 500')">📈 Meta R$ 500</button>
       </div>
       <form class="composer" onsubmit="handleSend(event)">
-        <button type="button" class="mic-btn" id="micBtn" onclick="toggleSingleMic()" title="Falar com a Kyrie">🎙️</button>
-        <input id="chatInput" type="text" placeholder="Digite ou fale 'Kyrie' para conversar..." autocomplete="off" />
+        <button type="button" class="mic-btn" id="micBtn" onclick="toggleSingleMic()" title="Falar com a Valkyrie">🎙️</button>
+        <input id="chatInput" type="text" placeholder="Digite ou clique no 🎙️ para falar com a Valkyrie..." autocomplete="off" />
         <button type="submit" class="send-btn">Enviar</button>
       </form>
     </section>
@@ -467,12 +516,22 @@
       <div class="inbox-toolbar">
         <div>
           <strong style="font-size:14px;">Central de Triagem WhatsApp (Filtro + Aprovação)</strong>
-          <p id="evoStatus">A Valkyrie filtra mensagens, avisa por voz/notificação e prepara o rascunho para você aprovar.</p>
+          <p id="evoStatus">A Kyrie filtra mensagens, avisa por voz/notificação e prepara o rascunho para você aprovar.</p>
         </div>
         <button class="pill-btn done" onclick="simulateWhatsApp()">🧪 Simular Mensagem + Voz</button>
       </div>
       <div class="inbox-list" id="inboxList"></div>
     </section>
+
+    <!-- Bottom Navigation Bar (iPhone / Android PWA) -->
+    <nav class="mobile-nav">
+      <button class="mnav-btn active" id="mTabChat" onclick="switchTab('chat')"><span class="ico">💬</span>Chat</button>
+      <button class="mnav-btn" id="mTabCar" onclick="switchTab('car')"><span class="ico">🚗</span>Carro</button>
+      <button class="mnav-btn" id="mTabRadar" onclick="switchTab('radar')"><span class="ico">📡</span>Radar</button>
+      <button class="mnav-btn" id="mTabFinance" onclick="switchTab('finance')"><span class="ico">💰</span>Finanças</button>
+      <button class="mnav-btn" id="mTabContacts" onclick="switchTab('contacts')"><span class="ico">👥</span>Contatos</button>
+      <button class="mnav-btn" id="mTabInbox" onclick="switchTab('inbox')"><span class="ico">📥</span>Whats</button>
+    </nav>
   </main>
 
   <script>
@@ -519,7 +578,23 @@
       });
     }
 
-    let currentAudio = null;
+    let currentAudioUrl = null;
+    let audioUnlocked = false;
+
+    function unlockMobileAudio() {
+      if (audioUnlocked) return;
+      const el = document.getElementById("kyrieAudio");
+      if (!el) return;
+      try {
+        el.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+        el.play().then(() => { el.pause(); audioUnlocked = true; }).catch(() => {});
+      } catch {}
+    }
+
+    function toggleDrawer(open) {
+      document.getElementById("sidebarPanel")?.classList.toggle("open", open);
+      document.getElementById("drawerBackdrop")?.classList.toggle("open", open);
+    }
 
     async function speakText(text, lang = "pt", voice = null) {
       if (currentState?.isCloud) {
@@ -534,10 +609,12 @@
           if (!res.ok) throw new Error("TTS");
           const blob = await res.blob();
           const url = URL.createObjectURL(blob);
-          currentAudio = new Audio(url);
-          currentAudio.onended = () => { URL.revokeObjectURL(url); if (!listeningMode) setAvatarState("idle"); };
-          currentAudio.onerror = () => { URL.revokeObjectURL(url); if (!listeningMode) setAvatarState("idle"); };
-          await currentAudio.play();
+          currentAudioUrl = url;
+          const el = document.getElementById("kyrieAudio");
+          el.src = url;
+          el.onended = () => { URL.revokeObjectURL(url); if (!listeningMode) setAvatarState("idle"); };
+          el.onerror = () => { URL.revokeObjectURL(url); if (!listeningMode) setAvatarState("idle"); };
+          await el.play();
         } catch {
           if (!listeningMode) setAvatarState("idle");
         }
@@ -551,9 +628,9 @@
     }
 
     async function stopSpeaking() {
-      if (currentAudio) {
-        try { currentAudio.pause(); currentAudio = null; } catch {}
-      }
+      const el = document.getElementById("kyrieAudio");
+      if (el) { try { el.pause(); } catch {} }
+      if (currentAudioUrl) { try { URL.revokeObjectURL(currentAudioUrl); currentAudioUrl = null; } catch {} }
       await fetch("/api/speak/stop", { method: "POST" }).catch(() => {});
       setAvatarState("idle");
     }
@@ -579,14 +656,14 @@
       banner.classList.add("show");
       document.getElementById("micBtn").classList.toggle("active", mode === "single");
       document.getElementById("handsFreeBtn").classList.toggle("listening", mode === "handsfree");
-      setAvatarState("listening", mode === "handsfree" ? 'Mãos livres ("Kyrie...")' : "Ouvindo você...");
+      setAvatarState("listening", mode === "handsfree" ? 'Mãos livres ("Valkyrie...")' : "Ouvindo você...");
 
       bannerText.textContent = mode === "handsfree"
-        ? '🎧 Mãos livres ativo — diga "Kyrie" seguido do comando...'
+        ? '🎧 Mãos livres ativo — diga "Valkyrie" seguido do comando...'
         : "🎙️ Pode falar agora em português...";
 
       recognition.onresult = (event) => {
-        if (isValkyrieSpeaking) return; // Evita eco enquanto a Kyrie está falando
+        if (isValkyrieSpeaking) return; // Evita eco enquanto a Valkyrie está falando
         const last = event.results[event.results.length - 1];
         const transcript = last[0].transcript.trim();
         bannerText.textContent = `🎙️ Ouvi: "${transcript}"`;
@@ -596,15 +673,15 @@
             stopListening();
             sendText(transcript);
           } else if (mode === "handsfree") {
-            // Aceita "Kyrie", "Kirie", "Kírie", "Quirie", "Kiri", "Kyria" (e também "Valquíria"/"Valkyrie")
-            const match = transcript.match(/(?:(?:k|qu)[iyí]r[iyí][ae]?s?|val\s*(?:qu|k)[iyí]ri[ae]s?)\s*[,:-]?\s*(.*)/i);
+            // Aceita "Valkyrie", "Valquíria", "Valquiria", "Valkíria", "Valquírie", etc.
+            const match = transcript.match(/val\s*(?:qu|k)[iyí]ri[ae]s?\s*[,:-]?\s*(.*)/i);
             const inFollowUp = Date.now() < followUpUntil;
 
             if (match) {
               const cmd = (match[1] || "").trim();
               followUpUntil = Date.now() + 20000; // 20s de conversa natural sem precisar repetir o nome
               if (!cmd) {
-                speakText("Oi Bruno, aqui é a Kyrie. Pode falar!");
+                speakText("Oi Bruno, estou te ouvindo. Pode falar!");
                 bannerText.textContent = "✨ Pode falar direto (conversa contínua ativa por 20s)...";
               } else {
                 sendText(cmd);
@@ -718,11 +795,20 @@
     }
 
     function switchTab(tab) {
-      const map = { chat: ["tabChat", "viewChat"], radar: ["tabRadar", "viewRadar"], car: ["tabCar", "viewCar"], finance: ["tabFinance", "viewFinance"], contacts: ["tabContacts", "viewContacts"], inbox: ["tabInbox", "viewInbox"] };
-      for (const [k, [tb, vw]] of Object.entries(map)) {
+      const map = {
+        chat: ["tabChat", "mTabChat", "viewChat"],
+        radar: ["tabRadar", "mTabRadar", "viewRadar"],
+        car: ["tabCar", "mTabCar", "viewCar"],
+        finance: ["tabFinance", "mTabFinance", "viewFinance"],
+        contacts: ["tabContacts", "mTabContacts", "viewContacts"],
+        inbox: ["tabInbox", "mTabInbox", "viewInbox"],
+      };
+      for (const [k, [tb, mtb, vw]] of Object.entries(map)) {
         document.getElementById(tb)?.classList.toggle("active", k === tab);
+        document.getElementById(mtb)?.classList.toggle("active", k === tab);
         document.getElementById(vw)?.classList.toggle("active", k === tab);
       }
+      toggleDrawer(false);
       if (tab === "finance" || tab === "contacts") loadSkillsData();
       if (tab === "radar") loadRadar(false);
     }
@@ -805,9 +891,10 @@
       if (currentState?.isCloud && data.reply) speakText(data.reply, data.lang, data.voice);
     }
 
-    function startCarIntro() { sendCarText(""); }
+    function startCarIntro() { unlockMobileAudio(); sendCarText(""); }
 
     async function runCarRadio() {
+      unlockMobileAudio();
       document.getElementById("carTranscript").innerHTML = `<em>Gerando Rádio Briefing 60s...</em>`;
       const res = await fetch("/api/car/talk", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -819,6 +906,7 @@
     }
 
     function carSpeakTurn() {
+      unlockMobileAudio();
       if (!SpeechRecognition) return alert("Reconhecimento de voz indisponível neste navegador.");
       stopSpeaking();
       const rec = new SpeechRecognition();
@@ -1152,14 +1240,16 @@
 
     function handleSend(e) {
       e.preventDefault();
+      unlockMobileAudio();
       const input = document.getElementById("chatInput");
       const val = input.value;
       input.value = "";
       sendText(val);
     }
-    function sendQuick(cmd) { sendText(cmd); }
+    function sendQuick(cmd) { unlockMobileAudio(); sendText(cmd); }
 
     async function askProactiveNow() {
+      unlockMobileAudio();
       const res = await fetch("/api/proactive/now", { method: "POST" });
       const data = await res.json();
       if (data.history && currentState) {

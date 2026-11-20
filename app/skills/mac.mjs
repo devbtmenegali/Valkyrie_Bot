@@ -117,3 +117,4 @@ export async function macSystemControl({ action, value = "" }) {
 
   return { ok: false, error: `Ação não suportada: ${action}` };
 }
+
