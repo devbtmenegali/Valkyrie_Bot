@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { sendWhatsAppMessage } from "../whatsapp/send.mjs";
 import { runValkyrieAI, getConfiguredProviders, loadMemoryFacts } from "./brain.mjs";
 import { getHolidayInfo } from "./holidays.mjs";
+import { fetchCalendarEvents } from "./calendar.mjs";
 import {
   isSupabaseEnabled,
   sbCheckReady,
@@ -225,39 +226,9 @@ function nowTimeStr() {
   return new Date().toLocaleTimeString("pt-BR", { timeZone: TZ, hour: "2-digit", minute: "2-digit" });
 }
 
-// ---------- Google Calendar ----------
-function fetchCalendarDate(dateStr) {
-  return new Promise((resolve) => {
-    const gcalPaths = [
-      "gcalendar",
-      path.join(process.env.HOME || "", ".gemini/antigravity/bin/gcalendar"),
-    ];
-    const tryBin = (idx) => {
-      if (idx >= gcalPaths.length) return resolve({ ok: false, events: [], error: "gcalendar CLI não encontrado" });
-      execFile(
-        gcalPaths[idx],
-        ["readonly", "events", "--date", dateStr, "--max", "50", "--json"],
-        { timeout: 12000 },
-        (err, stdout) => {
-          if (err) return tryBin(idx + 1);
-          try {
-            const raw = JSON.parse(stdout || "[]");
-            const events = (Array.isArray(raw) ? raw : []).map((ev) => ({
-              id: ev.id,
-              summary: ev.summary || "(Sem título)",
-              start: ev.start?.dateTime || ev.start?.date || "",
-              end: ev.end?.dateTime || ev.end?.date || "",
-              link: ev.htmlLink || "",
-            }));
-            resolve({ ok: true, events });
-          } catch {
-            resolve({ ok: false, events: [], error: "Erro ao ler JSON do Calendar" });
-          }
-        }
-      );
-    };
-    tryBin(0);
-  });
+// ---------- Google Calendar (CLI local + iCal 24/7 + Espelho Supabase) ----------
+async function fetchCalendarDate(dateStr) {
+  return fetchCalendarEvents(dateStr);
 }
 
 function formatTime(iso) {
