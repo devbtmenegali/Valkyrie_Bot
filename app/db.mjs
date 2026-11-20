@@ -131,3 +131,56 @@ export async function sbSetKV(key, value) {
     body: JSON.stringify({ key, value, updated_at: new Date().toISOString() }),
   });
 }
+
+// ---------- WhatsApp Triage Inbox ----------
+export async function sbLoadInbox(limit = 50) {
+  const rows = await sbFetch(`valkyrie_whatsapp_inbox?select=*&order=created_at.desc&limit=${limit}`);
+  if (!Array.isArray(rows)) return null;
+  return rows.map((r) => ({
+    id: r.id,
+    senderName: r.sender_name,
+    senderPhone: r.sender_phone,
+    text: r.message_text,
+    pillar: r.pillar,
+    priority: r.priority,
+    draftReply: r.draft_reply,
+    sentReply: r.sent_reply,
+    deliveryNote: r.delivery_note,
+    status: r.status,
+    simulated: Boolean(r.simulated),
+    time: r.time_label || "",
+    sentAt: r.sent_at || "",
+    createdAt: r.created_at,
+  }));
+}
+
+export async function sbInsertInbox(item) {
+  return sbFetch("valkyrie_whatsapp_inbox", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify({
+      id: item.id,
+      sender_name: item.senderName,
+      sender_phone: item.senderPhone || "",
+      message_text: item.text,
+      pillar: item.pillar || "Geral",
+      priority: item.priority || "media",
+      draft_reply: item.draftReply || "",
+      sent_reply: item.sentReply || null,
+      delivery_note: item.deliveryNote || null,
+      status: item.status || "pending",
+      simulated: Boolean(item.simulated),
+      time_label: item.time || "",
+      sent_at: item.sentAt || null,
+    }),
+  });
+}
+
+export async function sbUpdateInbox(id, patch) {
+  return sbFetch(`valkyrie_whatsapp_inbox?id=eq.${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify(patch),
+  });
+}
+

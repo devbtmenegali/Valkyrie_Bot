@@ -28,6 +28,9 @@ import {
   sbUpsertHabit,
   sbGetKV,
   sbSetKV,
+  sbLoadInbox,
+  sbInsertInbox,
+  sbUpdateInbox,
 } from "./db.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -357,67 +360,83 @@ function saveInbox(items) {
   fs.writeFileSync(INBOX_PATH, JSON.stringify(items.slice(0, 100), null, 2), "utf8");
 }
 
-async function generateSmartDraft(senderName, text, pillar) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (apiKey) {
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{
-              role: "user",
-              parts: [{
-                text: `Você é a Valkyrie, secretária executiva de Bruno Menegali. Escreva um rascunho de resposta curto, educado e profissional de WhatsApp (máx. 2 frases) em nome do Bruno para ${senderName || "o contato"} sobre o pilar ${pillar}. Mensagem recebida: "${text}". Retorne apenas o texto da resposta.`,
-              }],
-            }],
-          }),
-        }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        const draft = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-        if (draft) return draft;
-      }
-    } catch {}
+async function getAllInbox() {
+  const remote = await sbLoadInbox(60);
+  if (Array.isArray(remote)) {
+    saveInbox(remote);
+    return remote;
   }
-  return buildLocalDraftReply(senderName, text, pillar);
+  return loadInbox();
+}
+
+async function getPendingWhatsApp() {
+  const list = await getAllInbox();
+  const pending = list.filter((i) => i.status === "pending");
+  return { count: pending.length, items: pending.slice(0, 15) };
+}
+
+async function analyzeWhatsAppWithAI(senderName, text, fallbackPillar, fallbackPriority) {
+  try {
+    const ai = await runSimplePromptAI({
+      preferredProvider,
+      systemPrompt: `Você é a Valkyrie, Chief of Staff de Bruno Menegali. Analise esta mensagem de WhatsApp recebida e responda APENAS com um JSON válido (sem markdown):
+{"needs_bruno": true/false, "priority": "alta"|"media"|"baixa", "pillar": "GluN Capital"|"ProntoMed"|"CliniMind"|"Nossa Casa"|"Docência"|"Financeiro PF"|"Família"|"Geral", "summary": "resumo curto do que precisa do Bruno", "draft_reply": "rascunho humano e curto de resposta em nome do Bruno"}
+Regra: marque needs_bruno=false APENAS para ruído puro sem ação necessária (ex: 'bom dia', 'ok', 'obrigado', 'valeu', 'kkk', '👍', propaganda).`,
+      userText: `Remetente: ${senderName}\nMensagem: "${text}"`,
+    });
+    const raw = (ai.reply || "").replace(/^```json\s*|\s*```$/g, "").trim();
+    const parsed = JSON.parse(raw);
+    return {
+      needsBruno: parsed.needs_bruno !== false,
+      priority: ["alta", "media", "baixa"].includes(parsed.priority) ? parsed.priority : fallbackPriority,
+      pillar: parsed.pillar || fallbackPillar,
+      summary: parsed.summary || "",
+      draftReply: parsed.draft_reply || buildLocalDraftReply(senderName, text, fallbackPillar),
+    };
+  } catch {
+    return {
+      needsBruno: true,
+      priority: fallbackPriority,
+      pillar: fallbackPillar,
+      summary: "",
+      draftReply: buildLocalDraftReply(senderName, text, fallbackPillar),
+    };
+  }
 }
 
 async function ingestWhatsAppMessage({ senderName, senderPhone, text, simulated = false }) {
-  const pillar = detectPillar(text);
-  const priority = detectPriority(text, pillar);
-  const draftReply = await generateSmartDraft(senderName, text, pillar);
+  const fallbackPillar = detectPillar(text);
+  const fallbackPriority = detectPriority(text, fallbackPillar);
+  const analysis = await analyzeWhatsAppWithAI(senderName, text, fallbackPillar, fallbackPriority);
 
   const item = {
     id: crypto.randomUUID(),
     senderName: senderName || senderPhone || "Contato WhatsApp",
     senderPhone: (senderPhone || "").replace(/\D/g, ""),
-    text: text.trim(),
-    pillar,
-    priority,
-    draftReply,
-    status: "pending",
+    text: analysis.summary ? `${text.trim()}\n\n🧠 Valkyrie: ${analysis.summary}` : text.trim(),
+    pillar: analysis.pillar,
+    priority: analysis.priority,
+    draftReply: analysis.draftReply,
+    status: analysis.needsBruno || simulated ? "pending" : "dismissed",
     simulated,
     time: nowTimeStr(),
     createdAt: new Date().toISOString(),
   };
 
-  const inbox = loadInbox();
+  const inbox = await getAllInbox();
   inbox.unshift(item);
   saveInbox(inbox);
+  sbInsertInbox(item).catch(() => {});
 
-  if (priority !== "baixa" || simulated) {
+  if (item.status === "pending" && (item.priority !== "baixa" || simulated)) {
     broadcastEvent("notification", {
-      title: `Valkyrie • ${pillar} (${priority.toUpperCase()})`,
-      body: `${item.senderName}: "${item.text.slice(0, 100)}" — Rascunho pronto.`,
+      title: `Valkyrie • ${item.pillar} (${item.priority.toUpperCase()})`,
+      body: `${item.senderName}: "${text.slice(0, 100)}" — Rascunho pronto.`,
       tag: item.id,
       item,
     });
     if (voiceAlertsEnabled) {
-      speakMac(`Bruno, chegou uma mensagem de prioridade ${priority} de ${item.senderName}, sobre ${pillar}. Já deixei o rascunho pronto para sua aprovação.`);
+      speakMac(`Bruno, chegou uma mensagem importante de ${item.senderName}, sobre ${item.pillar}. ${analysis.summary || "Já deixei o rascunho pronto para sua aprovação."}`);
     }
   } else {
     broadcastEvent("inbox_update", { item });
@@ -624,6 +643,7 @@ async function generateValkyrieReply(userText, providerOverride = null) {
             };
           },
           getStrategicRadar: () => generateOrGetRadar(false),
+          getPendingWhatsApp,
           macOpenApp,
           macOpenUrl,
           macSearchFiles,
@@ -681,6 +701,7 @@ const proactiveEngine = createProactiveEngine({
   getWeekdayInfo,
   getFinanceSummary: () => getFinanceSummary(__dirname),
   getUpcomingBirthdays: (days) => getUpcomingBirthdays(__dirname, days),
+  getPendingWhatsApp,
   onProactiveMessage: async ({ title, text, providerUsed, tag }) => {
     const history = loadHistory();
     const botMsg = { role: "valkyrie", time: nowTimeStr(), text, tools: ["proactive_checkin"], providerUsed };
@@ -776,12 +797,13 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === "GET" && url.pathname === "/api/state") {
     // Hidrata do Supabase quando disponível
-    const [calToday, calTomorrow, remoteMsgs, remoteKanban, remoteHabit] = await Promise.all([
+    const [calToday, calTomorrow, remoteMsgs, remoteKanban, remoteHabit, syncedInbox] = await Promise.all([
       fetchCalendarDate(getLocalDateStr(0)),
       fetchCalendarDate(getLocalDateStr(1)),
       sbLoadMessages(60),
       sbGetKV("kanban_md"),
       sbGetHabit(getLocalDateStr(0)),
+      getAllInbox(),
     ]);
     if (remoteKanban?.markdown) fs.writeFileSync(KANBAN_PATH, remoteKanban.markdown, "utf8");
     const history = remoteMsgs && remoteMsgs.length ? remoteMsgs : loadHistory();
@@ -795,7 +817,7 @@ const server = http.createServer(async (req, res) => {
       kanban: parseKanban(),
       habits,
       history,
-      inbox: loadInbox(),
+      inbox: syncedInbox,
       voiceAlertsEnabled,
       isCloud: !IS_MAC,
       supabaseEnabled: isSupabaseEnabled(),
@@ -1116,14 +1138,19 @@ const server = http.createServer(async (req, res) => {
     item.deliveryNote = deliveryNote;
     item.sentAt = nowTimeStr();
     saveInbox(inbox);
+    sbUpdateInbox(item.id, { status: "sent", sent_reply: replyText, delivery_note: deliveryNote, sent_at: item.sentAt }).catch(() => {});
     return sendJson(res, 200, { inbox, deliveryNote });
   }
 
   if (req.method === "POST" && url.pathname === "/api/inbox/dismiss") {
     const body = await readJsonBody(req);
-    const inbox = loadInbox();
+    const inbox = await getAllInbox();
     const item = inbox.find((i) => i.id === body.id);
-    if (item) { item.status = "dismissed"; saveInbox(inbox); }
+    if (item) {
+      item.status = "dismissed";
+      saveInbox(inbox);
+      sbUpdateInbox(item.id, { status: "dismissed" }).catch(() => {});
+    }
     return sendJson(res, 200, { inbox });
   }
 

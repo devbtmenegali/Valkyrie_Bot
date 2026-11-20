@@ -26,15 +26,17 @@ export function createProactiveEngine({
   getWeekdayInfo,
   getFinanceSummary,
   getUpcomingBirthdays,
+  getPendingWhatsApp,
   onProactiveMessage,
 }) {
   const firedKeys = new Set();
 
   async function buildContextSnapshot(dateStr) {
-    const [cal, fin, bdays] = await Promise.all([
+    const [cal, fin, bdays, wa] = await Promise.all([
       fetchCalendarDate(dateStr),
       getFinanceSummary(),
       getUpcomingBirthdays(10),
+      getPendingWhatsApp ? getPendingWhatsApp() : Promise.resolve({ count: 0, items: [] }),
     ]);
     const habits = getTodayHabits();
     const holiday = getHolidayInfo(dateStr);
@@ -43,7 +45,7 @@ export function createProactiveEngine({
       .flatMap((s) => s.items.filter((i) => i.status !== "x").map((i) => `${s.title}: ${i.text}`))
       .slice(0, 4);
 
-    return { cal, fin, bdays, habits, holiday, info, topTasks };
+    return { cal, fin, bdays, wa, habits, holiday, info, topTasks };
   }
 
   async function triggerCheckIn(slotName, objectivePrompt) {
@@ -67,6 +69,7 @@ DADOS REAIS AGORA:
 - Agenda hoje: ${(ctx.cal.events || []).map((e) => `${e.summary} (${e.start.slice(11, 16) || "dia todo"})`).join(", ") || "Livre"}
 - Top tarefas abertas: ${ctx.topTasks.join(" | ") || "Nenhuma"}
 - Cobranças atrasadas a receber: ${ctx.fin.overdueReceivables.length}
+- Mensagens urgentes/pendentes no WhatsApp que precisam do Bruno: ${ctx.wa.count}${ctx.wa.items?.length ? " (" + ctx.wa.items.slice(0, 3).map((m) => `${m.senderName}: ${m.text.slice(0, 60)}`).join("; ") + ")" : ""}
 - Aniversários próximos (10d): ${ctx.bdays.map((b) => `${b.name} em ${b.daysUntil}d`).join(", ") || "Nenhum"}`;
 
     try {
@@ -140,3 +143,4 @@ DADOS REAIS AGORA:
     ),
   };
 }
+
