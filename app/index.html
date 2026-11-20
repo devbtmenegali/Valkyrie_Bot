@@ -481,6 +481,8 @@
     let voiceEnabled = true;
     let recognition = null;
     let listeningMode = null; // null | "single" | "handsfree"
+    let followUpUntil = 0; // Janela de conversa contínua (15s) após chamar "Valquíria"
+    let isValkyrieSpeaking = false;
 
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").then((r) => { swReg = r; }).catch(() => {});
@@ -584,6 +586,7 @@
         : "🎙️ Pode falar agora em português...";
 
       recognition.onresult = (event) => {
+        if (isValkyrieSpeaking) return; // Evita eco enquanto a Valkyrie está falando
         const last = event.results[event.results.length - 1];
         const transcript = last[0].transcript.trim();
         bannerText.textContent = `🎙️ Ouvi: "${transcript}"`;
@@ -595,14 +598,20 @@
           } else if (mode === "handsfree") {
             // Aceita "Valkyrie", "Valquíria", "Valquiria", "Valkíria", "Valquírie", etc.
             const match = transcript.match(/val\s*(?:qu|k)[iyí]ri[ae]s?\s*[,:-]?\s*(.*)/i);
+            const inFollowUp = Date.now() < followUpUntil;
+
             if (match) {
               const cmd = (match[1] || "").trim();
+              followUpUntil = Date.now() + 20000; // 20s de conversa natural sem precisar repetir o nome
               if (!cmd) {
-                speakText("Oi Bruno! Estou te ouvindo. Pode falar o que você precisa.");
-                bannerText.textContent = '✨ Valkyrie ativada — diga "Valquíria" + seu comando...';
+                speakText("Oi Bruno, estou te ouvindo. Pode falar!");
+                bannerText.textContent = "✨ Pode falar direto (conversa contínua ativa por 20s)...";
               } else {
                 sendText(cmd);
               }
+            } else if (inFollowUp && transcript.length > 2) {
+              followUpUntil = Date.now() + 20000;
+              sendText(transcript);
             }
           }
         }
@@ -646,8 +655,13 @@
     }
 
     function toggleHandsFree() {
-      if (listeningMode === "handsfree") stopListening();
-      else startRecognition("handsfree");
+      if (listeningMode === "handsfree") {
+        localStorage.setItem("valkyrie_handsfree", "0");
+        stopListening();
+      } else {
+        localStorage.setItem("valkyrie_handsfree", "1");
+        startRecognition("handsfree");
+      }
     }
 
     // ---------- Notifications + SSE ----------
@@ -695,7 +709,9 @@
       });
       es.addEventListener("speaking", (ev) => {
         const data = JSON.parse(ev.data || "{}");
+        isValkyrieSpeaking = Boolean(data.speaking);
         if (data.speaking) setAvatarState("speaking");
+        else if (listeningMode === "handsfree") setAvatarState("listening", 'Mãos livres ("Valquíria...")');
         else if (!listeningMode) setAvatarState("idle");
       });
       es.addEventListener("inbox_update", () => loadState());
@@ -1211,7 +1227,11 @@
 
     updateNotifBtn();
     connectSSE();
-    loadState();
+    loadState().then(() => {
+      if (localStorage.getItem("valkyrie_handsfree") === "1") {
+        setTimeout(() => startRecognition("handsfree"), 800);
+      }
+    });
   </script>
 </body>
 </html>
