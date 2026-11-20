@@ -1,7 +1,7 @@
 {
-  "name": "Valkyrie — Secretária Executiva",
-  "short_name": "Valkyrie",
-  "description": "Central Executiva Autônoma de Bruno Menegali: Chat IA, Google Calendar, Kanban, Hábitos e Triagem WhatsApp.",
+  "name": "Kyrie — Secretária Executiva",
+  "short_name": "Kyrie",
+  "description": "Central Executiva Autônoma de Bruno Menegali: Chat IA, Google Calendar, Kanban, Hábitos, WhatsApp e Modo Carro.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0b0f14",

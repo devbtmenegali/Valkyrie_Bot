@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#0b0f14" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Valkyrie" />
+  <meta name="apple-mobile-web-app-title" content="Kyrie" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" type="image/jpeg" href="/avatar.jpg?v=viking" />
   <link rel="apple-touch-icon" href="/avatar.jpg?v=viking" />
-  <title>Valkyrie — Secretária Executiva</title>
+  <title>Kyrie — Secretária Executiva</title>
   <style>
     :root {
       --bg: #0b0f14;
@@ -276,7 +276,7 @@
     <form onsubmit="submitPin(event)" style="background:#121821;border:1px solid #243041;border-radius:18px;padding:28px;width:320px;text-align:center;display:flex;flex-direction:column;gap:14px;">
       <img src="/avatar.jpg?v=viking" alt="Valkyrie" style="width:84px;height:84px;border-radius:50%;object-fit:cover;margin:0 auto;border:2px solid #10b981;" />
       <div>
-        <div style="font-size:17px;font-weight:700;">VALKYRIE</div>
+        <div style="font-size:17px;font-weight:700;">KYRIE</div>
         <div style="font-size:12px;color:#8fa0b5;margin-top:3px;">Acesso Privado — Bruno Menegali</div>
       </div>
       <input id="pinInput" type="password" placeholder="Digite seu PIN de acesso" autocomplete="current-password" style="background:#0b0f14;border:1px solid #243041;color:#e8edf4;padding:11px 14px;border-radius:10px;font-size:14px;text-align:center;outline:none;" />
@@ -290,7 +290,7 @@
         <img src="/avatar.jpg?v=viking" alt="Valkyrie" />
       </div>
       <div>
-        <div class="hero-name">VALKYRIE</div>
+        <div class="hero-name">KYRIE</div>
         <div class="hero-status" id="heroStatus"><span class="dot"></span> Pronta para você, Bruno</div>
       </div>
       <div class="hero-controls">
@@ -377,8 +377,8 @@
         <button class="quick-chip" onclick="sendQuick('/trade 500')">📈 Meta R$ 500</button>
       </div>
       <form class="composer" onsubmit="handleSend(event)">
-        <button type="button" class="mic-btn" id="micBtn" onclick="toggleSingleMic()" title="Falar com a Valkyrie">🎙️</button>
-        <input id="chatInput" type="text" placeholder="Digite ou clique no 🎙️ para falar com a Valkyrie..." autocomplete="off" />
+        <button type="button" class="mic-btn" id="micBtn" onclick="toggleSingleMic()" title="Falar com a Kyrie">🎙️</button>
+        <input id="chatInput" type="text" placeholder="Digite ou fale 'Kyrie' para conversar..." autocomplete="off" />
         <button type="submit" class="send-btn">Enviar</button>
       </form>
     </section>
@@ -579,14 +579,14 @@
       banner.classList.add("show");
       document.getElementById("micBtn").classList.toggle("active", mode === "single");
       document.getElementById("handsFreeBtn").classList.toggle("listening", mode === "handsfree");
-      setAvatarState("listening", mode === "handsfree" ? 'Mãos livres ("Valkyrie...")' : "Ouvindo você...");
+      setAvatarState("listening", mode === "handsfree" ? 'Mãos livres ("Kyrie...")' : "Ouvindo você...");
 
       bannerText.textContent = mode === "handsfree"
-        ? '🎧 Mãos livres ativo — diga "Valkyrie" seguido do comando...'
+        ? '🎧 Mãos livres ativo — diga "Kyrie" seguido do comando...'
         : "🎙️ Pode falar agora em português...";
 
       recognition.onresult = (event) => {
-        if (isValkyrieSpeaking) return; // Evita eco enquanto a Valkyrie está falando
+        if (isValkyrieSpeaking) return; // Evita eco enquanto a Kyrie está falando
         const last = event.results[event.results.length - 1];
         const transcript = last[0].transcript.trim();
         bannerText.textContent = `🎙️ Ouvi: "${transcript}"`;
@@ -596,15 +596,15 @@
             stopListening();
             sendText(transcript);
           } else if (mode === "handsfree") {
-            // Aceita "Valkyrie", "Valquíria", "Valquiria", "Valkíria", "Valquírie", etc.
-            const match = transcript.match(/val\s*(?:qu|k)[iyí]ri[ae]s?\s*[,:-]?\s*(.*)/i);
+            // Aceita "Kyrie", "Kirie", "Kírie", "Quirie", "Kiri", "Kyria" (e também "Valquíria"/"Valkyrie")
+            const match = transcript.match(/(?:(?:k|qu)[iyí]r[iyí][ae]?s?|val\s*(?:qu|k)[iyí]ri[ae]s?)\s*[,:-]?\s*(.*)/i);
             const inFollowUp = Date.now() < followUpUntil;
 
             if (match) {
               const cmd = (match[1] || "").trim();
               followUpUntil = Date.now() + 20000; // 20s de conversa natural sem precisar repetir o nome
               if (!cmd) {
-                speakText("Oi Bruno, estou te ouvindo. Pode falar!");
+                speakText("Oi Bruno, aqui é a Kyrie. Pode falar!");
                 bannerText.textContent = "✨ Pode falar direto (conversa contínua ativa por 20s)...";
               } else {
                 sendText(cmd);

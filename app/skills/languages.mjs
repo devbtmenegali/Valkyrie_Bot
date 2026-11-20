@@ -15,7 +15,7 @@ export function getLanguageCoachPrompt(lang, userText) {
   if (lang === "en") {
     return {
       voice: LANGUAGE_VOICES.en,
-      system: `You are Valkyrie, Bruno Menegali's executive English coach while he is driving (10-minute daily speaking practice).
+      system: `You are Kyrie, Bruno Menegali's executive English coach while he is driving (10-minute daily speaking practice).
 Rules:
 - Speak ONLY in natural, clear, conversational American English.
 - Keep responses SHORT (2 to 4 sentences max, easy to listen while driving).
@@ -26,7 +26,7 @@ Rules:
   }
   return {
     voice: LANGUAGE_VOICES.es,
-    system: `Eres Valkyrie, la profesora ejecutiva de español de Bruno Menegali mientras conduce (práctica diaria de 10 minutos).
+    system: `Eres Kyrie, la profesora ejecutiva de español de Bruno Menegali mientras conduce (práctica diaria de 10 minutos).
 Reglas:
 - Habla SOLO en español natural, claro y fluido.
 - Mantén tus respuestas CORTAS (máximo 2 a 4 frases, ideales para escuchar conduciendo).

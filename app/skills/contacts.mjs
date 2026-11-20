@@ -133,7 +133,7 @@ export async function getUpcomingBirthdays(appDir, daysAhead = 15) {
 }
 
 export function buildSupplierMessage(contact, subject) {
-  return `Olá ${contact.name}, tudo bem? Aqui é a Valkyrie, assistente executiva do Bruno da loja Nossa Casa. ${subject} Pode me confirmar por aqui? Obrigada!`;
+  return `Olá ${contact.name}, tudo bem? Aqui é a Kyrie, assistente executiva do Bruno da loja Nossa Casa. ${subject} Pode me confirmar por aqui? Obrigada!`;
 }
 
 // ---------- Busca ao vivo nos contatos reais do WhatsApp via Evolution API ----------

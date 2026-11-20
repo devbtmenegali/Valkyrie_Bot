@@ -138,5 +138,5 @@ export async function getFinanceSummary(appDir) {
 export function buildCollectionMessage(entry) {
   const valor = Number(entry.amount || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const venc = String(entry.due_date || "").split("-").reverse().join("/");
-  return `Olá ${entry.counterparty}, tudo bem? Aqui é a Valkyrie, assistente financeira do Bruno (${entry.scope}). Passando para lembrar gentilmente do pagamento referente a "${entry.description}" no valor de ${valor}, com vencimento em ${venc}. Caso já tenha sido efetuado, pode desconsiderar e me enviar o comprovante por aqui. Obrigada!`;
+  return `Olá ${entry.counterparty}, tudo bem? Aqui é a Kyrie, assistente financeira do Bruno (${entry.scope}). Passando para lembrar gentilmente do pagamento referente a "${entry.description}" no valor de ${valor}, com vencimento em ${venc}. Caso já tenha sido efetuado, pode desconsiderar e me enviar o comprovante por aqui. Obrigada!`;
 }
