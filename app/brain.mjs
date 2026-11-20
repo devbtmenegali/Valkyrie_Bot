@@ -269,8 +269,13 @@ const BASE_TOOLS = [
   },
   {
     name: "get_whatsapp_urgent_summary",
-    description: "Lista todas as mensagens pendentes do WhatsApp que a Valkyrie filtrou como importantes e que realmente precisam de resposta ou aprovação do Bruno.",
-    parameters: { type: "object", properties: {} },
+    description: "Lista as mensagens recentes recebidas no WhatsApp (pode filtrar por nome do remetente, ex: 'Val', 'Caio', 'Lucca'). SEMPRE use esta ferramenta quando o Bruno perguntar 'o que fulano respondeu?' ou 'chegou mensagem no WhatsApp?'.",
+    parameters: {
+      type: "object",
+      properties: {
+        sender_name: { type: "string", description: "Nome opcional do contato para filtrar as últimas mensagens recebidas (ex: Val, Caio)" },
+      },
+    },
   },
   {
     name: "mac_open_app",
@@ -455,7 +460,7 @@ function makeToolExecutor({ todayStr, memoryPath, helpers, executedTools }) {
       return await helpers.getStrategicRadar();
     }
     if (name === "get_whatsapp_urgent_summary" && helpers.getPendingWhatsApp) {
-      return await helpers.getPendingWhatsApp();
+      return await helpers.getPendingWhatsApp(args.sender_name || "");
     }
     if (name === "mac_open_app" && helpers.macOpenApp) return await helpers.macOpenApp(args.appName);
     if (name === "mac_open_url" && helpers.macOpenUrl) return await helpers.macOpenUrl(args.url);

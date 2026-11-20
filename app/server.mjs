@@ -369,10 +369,17 @@ async function getAllInbox() {
   return loadInbox();
 }
 
-async function getPendingWhatsApp() {
+async function getPendingWhatsApp(senderFilter = "") {
   const list = await getAllInbox();
+  const q = String(senderFilter || "").trim().toLowerCase();
+  if (q) {
+    // Quando Bruno pergunta por alguém específico (ex: "Val"), retorna TODAS as últimas mensagens dessa pessoa
+    const matched = list.filter((i) => (i.senderName || "").toLowerCase().includes(q)).slice(0, 10);
+    return { count: matched.length, filter: senderFilter, items: matched };
+  }
   const pending = list.filter((i) => i.status === "pending");
-  return { count: pending.length, items: pending.slice(0, 15) };
+  const recentReceived = list.filter((i) => !(i.senderName || "").startsWith("📤")).slice(0, 8);
+  return { count: pending.length, items: pending.slice(0, 12), recentReceived };
 }
 
 async function analyzeWhatsAppWithAI(senderName, text, fallbackPillar, fallbackPriority, isGroup = false) {
@@ -416,24 +423,32 @@ function isObviousNoise(text) {
   return /^(ok+|okay|kk+|rs+|ha+|haha+|hehe+|sim|n[aã]o|blz|beleza|valeu|vlw|obrigad[oa]|obg|tmj|top|show|massa|legal|am[eé]m|bom dia|boa tarde|boa noite|tudo bem|td bem|joinha|fechou|combinado|perfeito|certo|entendi|show de bola)$/.test(clean);
 }
 
+const recentOutboundPhones = new Map(); // phone -> timestamp (para nunca descartar respostas a quem a Kyrie acabou de escrever!)
+
 async function ingestWhatsAppMessage({ senderName, senderPhone, text, simulated = false, isGroup = false }) {
   // Pré-filtro gratuito: descarta ruído óbvio em grupos ou risadas/emojis sem gastar tokens
   if (!simulated && isGroup && isObviousNoise(text)) {
     return null;
   }
-  const fallbackPillar = detectPillar(text);
-  const fallbackPriority = detectPriority(text, fallbackPillar);
+  const cleanPhone = String(senderPhone || "").replace(/\D/g, "");
+  const lastOut = recentOutboundPhones.get(cleanPhone) || 0;
+  const isReplyToKyrie = Date.now() - lastOut < 60 * 60 * 1000; // resposta dentro de 1h
+  const isFamily = /^(val|lucca|caio)\b/i.test(String(senderName || "").trim());
+
+  const fallbackPillar = isFamily ? "Família" : detectPillar(text);
+  const fallbackPriority = isReplyToKyrie || isFamily ? "alta" : detectPriority(text, fallbackPillar);
   const analysis = await analyzeWhatsAppWithAI(senderName, text, fallbackPillar, fallbackPriority, isGroup);
 
+  const keepVisible = analysis.needsBruno || isReplyToKyrie || isFamily || simulated;
   const item = {
     id: crypto.randomUUID(),
     senderName: senderName || senderPhone || "Contato WhatsApp",
-    senderPhone: (senderPhone || "").replace(/\D/g, ""),
-    text: analysis.summary ? `${text.trim()}\n\n🧠 Valkyrie: ${analysis.summary}` : text.trim(),
-    pillar: analysis.pillar,
-    priority: analysis.priority,
+    senderPhone: cleanPhone,
+    text: analysis.summary ? `${text.trim()}\n\n🧠 Kyrie: ${analysis.summary}` : text.trim(),
+    pillar: isFamily ? "Família" : analysis.pillar,
+    priority: isReplyToKyrie || isFamily ? "alta" : analysis.priority,
     draftReply: analysis.draftReply,
-    status: analysis.needsBruno || simulated ? "pending" : "dismissed",
+    status: keepVisible ? "pending" : "dismissed",
     simulated,
     time: nowTimeStr(),
     createdAt: new Date().toISOString(),
@@ -444,15 +459,30 @@ async function ingestWhatsAppMessage({ senderName, senderPhone, text, simulated 
   saveInbox(inbox);
   sbInsertInbox(item).catch(() => {});
 
+  // Se for resposta a uma mensagem que a Kyrie enviou (ou família), já avisa direto no Chat principal também!
+  if (!simulated && (isReplyToKyrie || isFamily)) {
+    const history = loadHistory();
+    const chatAlert = {
+      role: "valkyrie",
+      time: nowTimeStr(),
+      text: `📩 **${item.senderName} respondeu no WhatsApp:**\n"${text.trim()}"`,
+      tools: ["whatsapp_reply_received"],
+      providerUsed: "WhatsApp ao vivo",
+    };
+    history.push(chatAlert);
+    saveHistory(history);
+    sbAppendMessage(chatAlert).catch(() => {});
+  }
+
   if (item.status === "pending" && (item.priority !== "baixa" || simulated)) {
     broadcastEvent("notification", {
-      title: `Valkyrie • ${item.pillar} (${item.priority.toUpperCase()})`,
-      body: `${item.senderName}: "${text.slice(0, 100)}" — Rascunho pronto.`,
+      title: `Kyrie • ${item.pillar} (${item.priority.toUpperCase()})`,
+      body: `${item.senderName}: "${text.slice(0, 100)}"`,
       tag: item.id,
       item,
     });
     if (voiceAlertsEnabled) {
-      speakMac(`Bruno, chegou uma mensagem importante de ${item.senderName}, sobre ${item.pillar}. ${analysis.summary || "Já deixei o rascunho pronto para sua aprovação."}`);
+      speakMac(`Bruno, ${item.senderName} respondeu no WhatsApp: ${text.slice(0, 140)}`);
     }
   } else {
     broadcastEvent("inbox_update", { item });
@@ -664,6 +694,7 @@ async function generateValkyrieReply(userText, providerOverride = null) {
             }
             try {
               await sendWhatsAppMessage(message, targetPhone);
+              recentOutboundPhones.set(targetPhone, Date.now());
               console.log(`[WhatsApp Enviado] para=${targetLabel} (${targetPhone})`);
               const sentItem = {
                 id: crypto.randomUUID(),
@@ -729,6 +760,7 @@ async function generateValkyrieReply(userText, providerOverride = null) {
             }
             try {
               await sendWhatsAppMessage(message, targetPhone);
+              recentOutboundPhones.set(targetPhone, Date.now());
               console.log(`[WhatsApp Enviado] para=${targetLabel} (${targetPhone})`);
               return { ok: true, sent: true, to: targetLabel, phone: targetPhone, message };
             } catch (err) {
