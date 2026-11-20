@@ -333,23 +333,26 @@
 
   <main class="main">
     <header class="topbar">
-      <div class="tabs">
-        <button class="tab-btn active" id="tabChat" onclick="switchTab('chat')">💬 Chat Valkyrie</button>
+      <div class="tabs" style="flex-wrap:wrap;">
+        <button class="tab-btn active" id="tabChat" onclick="switchTab('chat')">💬 Chat</button>
+        <button class="tab-btn" id="tabCar" onclick="switchTab('car')">🚗 Carro / Idiomas</button>
+        <button class="tab-btn" id="tabFinance" onclick="switchTab('finance')">💰 Finanças</button>
+        <button class="tab-btn" id="tabContacts" onclick="switchTab('contacts')">👥 Contatos & Loja</button>
         <button class="tab-btn" id="tabInbox" onclick="switchTab('inbox')">
-          📥 Triagem WhatsApp <span class="count-badge" id="inboxBadge">0</span>
+          📥 WhatsApp <span class="count-badge" id="inboxBadge">0</span>
         </button>
       </div>
       <div class="topbar-right">
         <select class="tool-btn active" id="providerSelect" onchange="changeProvider()" title="Motor de IA da Valkyrie">
-          <option value="auto">🧠 Auto (Fallback)</option>
+          <option value="auto">🧠 Auto</option>
           <option value="openai">GPT-4o Mini</option>
-          <option value="gemini">Gemini 3.8 Flash</option>
-          <option value="xai">Grok (xAI)</option>
-          <option value="qwen">Qwen Plus</option>
-          <option value="mistral">Mistral Small</option>
+          <option value="mistral">Mistral</option>
+          <option value="qwen">Qwen</option>
+          <option value="gemini">Gemini</option>
+          <option value="xai">Grok</option>
         </select>
-        <button class="tool-btn" id="handsFreeBtn" onclick="toggleHandsFree()">🎧 Ouvir ("Valkyrie")</button>
-        <button class="tool-btn" id="notifBtn" onclick="enableNotifications()">🔔 Notificações</button>
+        <button class="tool-btn" id="handsFreeBtn" onclick="toggleHandsFree()">🎧 Ouvir</button>
+        <button class="tool-btn" id="notifBtn" onclick="enableNotifications()">🔔 Alertas</button>
       </div>
     </header>
 
@@ -376,6 +379,62 @@
         <input id="chatInput" type="text" placeholder="Digite ou clique no 🎙️ para falar com a Valkyrie..." autocomplete="off" />
         <button type="submit" class="send-btn">Enviar</button>
       </form>
+    </section>
+
+    <!-- Car Mode & Languages View -->
+    <section class="view" id="viewCar">
+      <div style="padding:20px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;align-items:center;text-align:center;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+          <button class="pill-btn done" id="carModeEn" onclick="setCarMode('en')">🇺🇸 Inglês (10 min)</button>
+          <button class="pill-btn" id="carModeEs" onclick="setCarMode('es')">🇪🇸 Espanhol (10 min)</button>
+          <button class="pill-btn gold" onclick="runCarRadio()">🎙️ Rádio Briefing 60s</button>
+        </div>
+        <div id="carTimer" style="font-size:34px;font-weight:800;letter-spacing:2px;color:var(--accent);font-variant-numeric:tabular-nums;">10:00</div>
+        <button id="carBigMic" onclick="carSpeakTurn()" style="width:170px;height:170px;border-radius:50%;border:3px solid var(--accent);background:radial-gradient(circle, rgba(16,185,129,0.28), #111720);color:var(--text);font-size:16px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
+          <span style="font-size:44px;">🎙️</span>
+          <span id="carMicLabel">Tocar e Falar</span>
+        </button>
+        <div id="carTranscript" style="max-width:600px;width:100%;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px;font-size:14px;line-height:1.5;min-height:84px;text-align:left;">
+          Escolha <strong>🇺🇸 Inglês</strong> ou <strong>🇪🇸 Espanhol</strong> e toque no botão grande para conversar com a Valkyrie no carro (ou toque em <strong>🎙️ Rádio Briefing 60s</strong>).
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="pill-btn" onclick="startCarIntro()">▶️ Iniciar Conversa</button>
+          <button class="pill-btn" onclick="finishLanguageSession()">✅ Concluir 10 min</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Finance & Collections View -->
+    <section class="view" id="viewFinance">
+      <div style="padding:16px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;" id="finSummaryCards"></div>
+        <form onsubmit="addFinance(event)" style="display:grid;grid-template-columns:100px 110px 1fr 1fr 110px 130px auto;gap:8px;background:var(--panel);padding:12px;border-radius:12px;border:1px solid var(--border);align-items:center;">
+          <select id="finKind" class="tool-btn"><option value="pagar">A Pagar</option><option value="receber">A Receber</option></select>
+          <select id="finScope" class="tool-btn"><option value="PF">PF</option><option value="Nossa Casa">Nossa Casa</option><option value="GluN">GluN</option><option value="ProntoMed">ProntoMed</option><option value="CliniMind">CliniMind</option></select>
+          <input id="finCounterparty" placeholder="Pessoa / Empresa" required style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:12.5px;" />
+          <input id="finDesc" placeholder="Descrição" required style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:12.5px;" />
+          <input id="finAmount" type="number" step="0.01" placeholder="Valor R$" required style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:12.5px;" />
+          <input id="finDue" type="date" required style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:12px;" />
+          <button type="submit" class="btn-approve">+ Lançar</button>
+        </form>
+        <div id="finList" style="display:flex;flex-direction:column;gap:9px;"></div>
+      </div>
+    </section>
+
+    <!-- Contacts, Family & Nossa Casa Suppliers View -->
+    <section class="view" id="viewContacts">
+      <div style="padding:16px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;">
+        <div id="bdayBanner" style="display:none;background:var(--gold-soft);border:1px solid rgba(234,179,8,0.4);border-radius:12px;padding:12px;font-size:13px;color:#fde047;"></div>
+        <form onsubmit="addContact(event)" style="display:grid;grid-template-columns:1fr 120px 130px 95px 1fr auto;gap:8px;background:var(--panel);padding:12px;border-radius:12px;border:1px solid var(--border);align-items:center;">
+          <input id="cName" placeholder="Nome (ex: Val, Fornecedor X)" required style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:12.5px;" />
+          <select id="cCat" class="tool-btn"><option value="familia">Família</option><option value="fornecedor">Fornecedor</option><option value="socio">Sócio</option><option value="cliente">Cliente</option></select>
+          <input id="cPhone" placeholder="WhatsApp 5548..." style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:12.5px;" />
+          <input id="cBday" placeholder="MM-DD" title="Aniversário MM-DD" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:12.5px;" />
+          <input id="cGifts" placeholder="Gostos p/ presente ou empresa" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:12.5px;" />
+          <button type="submit" class="btn-approve">Salvar</button>
+        </form>
+        <div id="contactsList" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;"></div>
+      </div>
     </section>
 
     <!-- WhatsApp Triage View -->
@@ -435,7 +494,7 @@
 
     let currentAudio = null;
 
-    async function speakText(text) {
+    async function speakText(text, lang = "pt", voice = null) {
       if (currentState?.isCloud) {
         stopSpeaking();
         try {
@@ -443,7 +502,7 @@
           const res = await fetch("/api/tts", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text }),
+            body: JSON.stringify({ text, lang, voice }),
           });
           if (!res.ok) throw new Error("TTS");
           const blob = await res.blob();
@@ -460,7 +519,7 @@
       await fetch("/api/speak", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, lang, voice }),
       });
     }
 
@@ -618,10 +677,216 @@
     }
 
     function switchTab(tab) {
-      document.getElementById("tabChat").classList.toggle("active", tab === "chat");
-      document.getElementById("tabInbox").classList.toggle("active", tab === "inbox");
-      document.getElementById("viewChat").classList.toggle("active", tab === "chat");
-      document.getElementById("viewInbox").classList.toggle("active", tab === "inbox");
+      const map = { chat: ["tabChat", "viewChat"], car: ["tabCar", "viewCar"], finance: ["tabFinance", "viewFinance"], contacts: ["tabContacts", "viewContacts"], inbox: ["tabInbox", "viewInbox"] };
+      for (const [k, [tb, vw]] of Object.entries(map)) {
+        document.getElementById(tb)?.classList.toggle("active", k === tab);
+        document.getElementById(vw)?.classList.toggle("active", k === tab);
+      }
+      if (tab === "finance" || tab === "contacts") loadSkillsData();
+    }
+
+    // ---------- Skills UI: Car Mode / Languages, Finance & Contacts ----------
+    let carLang = "en";
+    let carSeconds = 600;
+    let carTimerInterval = null;
+
+    function setCarMode(lang) {
+      carLang = lang;
+      carSeconds = 600;
+      clearInterval(carTimerInterval);
+      carTimerInterval = null;
+      document.getElementById("carTimer").textContent = "10:00";
+      document.getElementById("carModeEn").classList.toggle("done", lang === "en");
+      document.getElementById("carModeEs").classList.toggle("done", lang === "es");
+    }
+
+    function ensureCarTimer() {
+      if (carTimerInterval) return;
+      carTimerInterval = setInterval(() => {
+        if (carSeconds > 0) {
+          carSeconds--;
+          const m = String(Math.floor(carSeconds / 60)).padStart(2, "0");
+          const s = String(carSeconds % 60).padStart(2, "0");
+          document.getElementById("carTimer").textContent = `${m}:${s}`;
+        } else {
+          clearInterval(carTimerInterval);
+          carTimerInterval = null;
+          finishLanguageSession();
+        }
+      }, 1000);
+    }
+
+    async function sendCarText(text) {
+      ensureCarTimer();
+      document.getElementById("carTranscript").innerHTML = `<em>Valkyrie pensando...</em>`;
+      const res = await fetch("/api/car/talk", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: carLang, text }),
+      });
+      const data = await res.json();
+      document.getElementById("carTranscript").innerHTML = `<strong>Valkyrie (${carLang.toUpperCase()}):</strong><br/>${escapeHtml(data.reply || "")}`;
+      if (currentState?.isCloud && data.reply) speakText(data.reply, data.lang, data.voice);
+    }
+
+    function startCarIntro() { sendCarText(""); }
+
+    async function runCarRadio() {
+      document.getElementById("carTranscript").innerHTML = `<em>Gerando Rádio Briefing 60s...</em>`;
+      const res = await fetch("/api/car/talk", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "radio" }),
+      });
+      const data = await res.json();
+      document.getElementById("carTranscript").innerHTML = `<strong>🎙️ Rádio Valkyrie:</strong><br/>${escapeHtml(data.reply || "")}`;
+      if (currentState?.isCloud && data.reply) speakText(data.reply, "pt", data.voice);
+    }
+
+    function carSpeakTurn() {
+      if (!SpeechRecognition) return alert("Reconhecimento de voz indisponível neste navegador.");
+      stopSpeaking();
+      const rec = new SpeechRecognition();
+      rec.lang = carLang === "en" ? "en-US" : "es-MX";
+      rec.interimResults = false;
+      document.getElementById("carMicLabel").textContent = carLang === "en" ? "Listening..." : "Escuchando...";
+      rec.onresult = (ev) => {
+        const spoken = ev.results[0][0].transcript;
+        document.getElementById("carMicLabel").textContent = "Tocar e Falar";
+        sendCarText(spoken);
+      };
+      rec.onerror = () => { document.getElementById("carMicLabel").textContent = "Tocar e Falar"; };
+      rec.onend = () => { document.getElementById("carMicLabel").textContent = "Tocar e Falar"; };
+      rec.start();
+    }
+
+    async function finishLanguageSession() {
+      const elapsed = Math.max(60, 600 - carSeconds);
+      await fetch("/api/car/complete", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lang: carLang, durationSec: elapsed }),
+      });
+      speakText(`Parabéns Bruno! Treino de ${carLang === "en" ? "inglês" : "espanhol"} concluído e registrado.`, "pt");
+      setCarMode(carLang);
+    }
+
+    async function loadSkillsData() {
+      const res = await fetch("/api/skills/all");
+      if (!res.ok) return;
+      const data = await res.json();
+      renderFinance(data.finance);
+      renderContacts(data.contacts, data.birthdays);
+    }
+
+    function brl(v) { return Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+
+    function renderFinance(fin) {
+      if (!fin) return;
+      document.getElementById("finSummaryCards").innerHTML = `
+        <div class="card"><div class="card-title">A Pagar (Aberto)</div><strong style="font-size:18px;color:#fda4af;">${brl(fin.totalPagarAberto)}</strong></div>
+        <div class="card"><div class="card-title">A Receber (Aberto)</div><strong style="font-size:18px;color:var(--accent);">${brl(fin.totalReceberAberto)}</strong></div>
+        <div class="card"><div class="card-title">Cobranças Atrasadas</div><strong style="font-size:18px;color:var(--gold);">${brl(fin.totalAtrasadoReceber)}</strong></div>
+      `;
+      const el = document.getElementById("finList");
+      if (!fin.items?.length) {
+        el.innerHTML = `<div class="empty-state">Nenhuma conta lançada ainda. Use o formulário acima ou diga no chat: <em>"Valquíria, lança conta a receber de R$ 1.500 do cliente X vencendo dia 25"</em>.</div>`;
+        return;
+      }
+      el.innerHTML = fin.items.map((i) => `
+        <div class="wa-card ${i.effectiveStatus === "atrasado" ? "alta" : i.status === "pago" ? "baixa" : "media"}">
+          <div class="wa-head">
+            <span class="wa-sender">${i.kind === "receber" ? "🟢 A Receber" : "🔴 A Pagar"} • ${escapeHtml(i.counterparty)} (${escapeHtml(i.scope)})</span>
+            <div class="wa-tags">
+              <span class="tag">${brl(i.amount)}</span>
+              <span class="tag">Venc: ${escapeHtml(i.due_date.split("-").reverse().join("/"))}</span>
+              <span class="tag ${i.effectiveStatus === "atrasado" ? "alta" : ""}">${i.effectiveStatus.toUpperCase()}</span>
+            </div>
+          </div>
+          <div style="font-size:13px;color:var(--muted);">${escapeHtml(i.description)}</div>
+          ${i.status !== "pago" ? `
+            <div class="wa-actions">
+              ${i.kind === "receber" ? `<button class="pill-btn gold" onclick="collectFinance('${i.id}')">💸 Cobrar no WhatsApp</button>` : ""}
+              <button class="btn-approve" onclick="payFinance('${i.id}')">✅ Marcar Pago</button>
+            </div>
+          ` : ""}
+        </div>
+      `).join("");
+    }
+
+    async function addFinance(e) {
+      e.preventDefault();
+      await fetch("/api/finance", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: document.getElementById("finKind").value,
+          scope: document.getElementById("finScope").value,
+          counterparty: document.getElementById("finCounterparty").value,
+          description: document.getElementById("finDesc").value,
+          amount: document.getElementById("finAmount").value,
+          due_date: document.getElementById("finDue").value,
+        }),
+      });
+      e.target.reset();
+      loadSkillsData();
+    }
+
+    async function payFinance(id) {
+      await fetch("/api/finance/pay", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+      loadSkillsData();
+    }
+
+    async function collectFinance(id) {
+      await fetch("/api/finance/collect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+      await loadState();
+      switchTab("inbox");
+    }
+
+    function renderContacts(contacts, birthdays) {
+      const bEl = document.getElementById("bdayBanner");
+      if (birthdays?.length) {
+        bEl.style.display = "block";
+        bEl.innerHTML = `🎂 <strong>Aniversários próximos:</strong> ` + birthdays.map((b) => `${escapeHtml(b.name)} (${b.birthday} — em ${b.daysUntil}d • Dica: ${escapeHtml(b.gift_preferences)})`).join(" | ");
+      } else {
+        bEl.style.display = "none";
+      }
+      document.getElementById("contactsList").innerHTML = (contacts || []).map((c) => `
+        <div class="card" style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <strong>${escapeHtml(c.name)}</strong>
+            <span class="tag">${escapeHtml(c.category)}</span>
+          </div>
+          <small style="color:var(--muted);">📱 ${escapeHtml(c.phone || "Sem WhatsApp")} ${c.birthday ? `• 🎂 ${escapeHtml(c.birthday)}` : ""}</small>
+          ${c.gift_preferences ? `<small style="color:var(--gold);">🎁 ${escapeHtml(c.gift_preferences)}</small>` : ""}
+          <div style="margin-top:4px;display:flex;gap:6px;">
+            <button class="pill-btn done" onclick="messageContact('${c.id}', '${escapeHtml(c.category)}')">${c.category === "fornecedor" ? "📦 Cotar / Cobrar" : "💬 Mensagem"}</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function addContact(e) {
+      e.preventDefault();
+      await fetch("/api/contacts", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: document.getElementById("cName").value,
+          category: document.getElementById("cCat").value,
+          phone: document.getElementById("cPhone").value,
+          birthday: document.getElementById("cBday").value,
+          gift_preferences: document.getElementById("cGifts").value,
+        }),
+      });
+      e.target.reset();
+      loadSkillsData();
+    }
+
+    async function messageContact(id, category) {
+      const subject = prompt(category === "fornecedor" ? "O que a Valkyrie deve perguntar/cobrar deste fornecedor da Nossa Casa?" : "Qual mensagem a Valkyrie deve preparar?", "");
+      if (subject === null) return;
+      await fetch("/api/contacts/message", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, subject }),
+      });
+      await loadState();
+      switchTab("inbox");
     }
 
     function formatTime(iso) {

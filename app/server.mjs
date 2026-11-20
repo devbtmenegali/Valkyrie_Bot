@@ -10,9 +10,12 @@ import crypto from "node:crypto";
 import { execFile, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { sendWhatsAppMessage } from "../whatsapp/send.mjs";
-import { runValkyrieAI, getConfiguredProviders, loadMemoryFacts } from "./brain.mjs";
+import { runValkyrieAI, runSimplePromptAI, getConfiguredProviders, loadMemoryFacts } from "./brain.mjs";
 import { getHolidayInfo } from "./holidays.mjs";
 import { fetchCalendarEvents } from "./calendar.mjs";
+import { listContacts, upsertContact, getUpcomingBirthdays, buildSupplierMessage } from "./skills/contacts.mjs";
+import { listFinance, addFinanceEntry, markFinancePaid, getFinanceSummary, buildCollectionMessage } from "./skills/finance.mjs";
+import { LANGUAGE_VOICES, getLanguageCoachPrompt, listLanguageSessions, logLanguageSession } from "./skills/languages.mjs";
 import {
   isSupabaseEnabled,
   sbCheckReady,
@@ -73,14 +76,15 @@ function isAuthorized(req) {
   return cookie.includes(`valkyrie_session=${SESSION_TOKEN}`);
 }
 
-function generateTtsBuffer(text) {
+function generateTtsBuffer(text, voiceOverride = null) {
   return new Promise((resolve, reject) => {
     const cleaned = cleanTextForSpeech(text);
     if (!cleaned) return reject(new Error("Texto vazio"));
     const tmpFile = `/tmp/valkyrie-tts-${crypto.randomUUID()}.mp3`;
+    const voice = voiceOverride || NEURAL_VOICE;
     const proc = spawn(
       EDGE_TTS_BIN,
-      ["--voice", NEURAL_VOICE, "--rate=+5%", "--text", cleaned, "--write-media", tmpFile],
+      ["--voice", voice, "--rate=+5%", "--text", cleaned, "--write-media", tmpFile],
       { stdio: "ignore" }
     );
     proc.on("error", (err) => reject(err));
@@ -141,7 +145,7 @@ function speakFallbackSay(cleaned, seq) {
   }
 }
 
-function speakMac(text) {
+function speakMac(text, voiceOverride = null) {
   if (!IS_MAC) return;
   const cleaned = cleanTextForSpeech(text);
   if (!cleaned) return;
@@ -157,7 +161,7 @@ function speakMac(text) {
 
   const gen = spawn(
     EDGE_TTS_BIN,
-    ["--voice", NEURAL_VOICE, "--rate=+5%", "--text", cleaned, "--write-media", outFile],
+    ["--voice", voiceOverride || NEURAL_VOICE, "--rate=+5%", "--text", cleaned, "--write-media", outFile],
     { stdio: "ignore" }
   );
   activeAudioProc = gen;
@@ -580,6 +584,32 @@ async function generateValkyrieReply(userText, providerOverride = null) {
           addIdeaToKanban,
           completeKanbanByQuery,
           saveTodayHabits,
+          upsertContact: (args) => upsertContact(__dirname, args),
+          getUpcomingBirthdays: (days) => getUpcomingBirthdays(__dirname, days),
+          addFinanceEntry: (args) => addFinanceEntry(__dirname, args),
+          getFinanceSummary: () => getFinanceSummary(__dirname),
+          queueOutboundMessage: async ({ recipient_name, message, pillar = "Envio Proativo" }) => {
+            const contacts = await listContacts(__dirname);
+            const found = contacts.find((c) => c.name.toLowerCase() === String(recipient_name || "").toLowerCase());
+            const item = {
+              id: crypto.randomUUID(),
+              senderName: `📤 Para: ${found?.name || recipient_name}`,
+              senderPhone: found?.phone || "",
+              text: `[Mensagem preparada pela Valkyrie para ${found?.name || recipient_name}]`,
+              pillar,
+              priority: "alta",
+              draftReply: message,
+              status: "pending",
+              simulated: !found?.phone,
+              time: nowTimeStr(),
+              createdAt: new Date().toISOString(),
+            };
+            const inbox = loadInbox();
+            inbox.unshift(item);
+            saveInbox(inbox);
+            broadcastEvent("inbox_update", { item });
+            return item;
+          },
         },
       });
       return result;
@@ -687,7 +717,8 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "POST" && url.pathname === "/api/tts") {
     const body = await readJsonBody(req);
     try {
-      const buf = await generateTtsBuffer(body.text || "");
+      const voice = body.voice || LANGUAGE_VOICES[body.lang] || NEURAL_VOICE;
+      const buf = await generateTtsBuffer(body.text || "", voice);
       res.writeHead(200, { "Content-Type": "audio/mpeg", "Content-Length": buf.length });
       return res.end(buf);
     } catch (err) {
@@ -747,8 +778,140 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === "POST" && url.pathname === "/api/speak") {
     const body = await readJsonBody(req);
-    if (body.text) speakMac(body.text);
+    if (body.text) speakMac(body.text, body.voice || LANGUAGE_VOICES[body.lang] || null);
     return sendJson(res, 200, { ok: true });
+  }
+
+  // ---------- Skill Endpoints: Contatos, Finanças & Modo Carro / Idiomas ----------
+  if (req.method === "GET" && url.pathname === "/api/skills/all") {
+    const [contacts, birthdays, finance] = await Promise.all([
+      listContacts(__dirname),
+      getUpcomingBirthdays(__dirname, 30),
+      getFinanceSummary(__dirname),
+    ]);
+    return sendJson(res, 200, {
+      contacts,
+      birthdays,
+      finance,
+      languageSessions: listLanguageSessions(__dirname).slice(0, 14),
+    });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/contacts") {
+    const body = await readJsonBody(req);
+    const saved = await upsertContact(__dirname, body);
+    return sendJson(res, 200, { ok: true, contact: saved, contacts: await listContacts(__dirname), birthdays: await getUpcomingBirthdays(__dirname, 30) });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/contacts/message") {
+    const body = await readJsonBody(req);
+    const contacts = await listContacts(__dirname);
+    const contact = contacts.find((c) => c.id === body.id || c.name.toLowerCase() === String(body.name || "").toLowerCase());
+    if (!contact) return sendJson(res, 404, { error: "Contato não encontrado" });
+    const draft = contact.category === "fornecedor"
+      ? buildSupplierMessage(contact, body.subject || "Gostaria de confirmar o status do nosso pedido e prazo de entrega.")
+      : (body.subject || `Oi ${contact.name}, tudo bem? Passando aqui só para dar um alô!`);
+
+    const item = {
+      id: crypto.randomUUID(),
+      senderName: `📤 Para: ${contact.name}${contact.company ? ` (${contact.company})` : ""}`,
+      senderPhone: contact.phone || "",
+      text: `[Rascunho ${contact.category === "fornecedor" ? "Fornecedor Nossa Casa" : "Família/Contato"}]`,
+      pillar: contact.category === "fornecedor" ? "Nossa Casa" : "Família",
+      priority: "media",
+      draftReply: draft,
+      status: "pending",
+      simulated: !contact.phone,
+      time: nowTimeStr(),
+      createdAt: new Date().toISOString(),
+    };
+    const inbox = loadInbox();
+    inbox.unshift(item);
+    saveInbox(inbox);
+    broadcastEvent("inbox_update", { item });
+    return sendJson(res, 200, { ok: true, inbox });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/finance") {
+    const body = await readJsonBody(req);
+    await addFinanceEntry(__dirname, body);
+    return sendJson(res, 200, { ok: true, finance: await getFinanceSummary(__dirname) });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/finance/pay") {
+    const body = await readJsonBody(req);
+    await markFinancePaid(__dirname, body.id);
+    return sendJson(res, 200, { ok: true, finance: await getFinanceSummary(__dirname) });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/finance/collect") {
+    const body = await readJsonBody(req);
+    const fin = await getFinanceSummary(__dirname);
+    const entry = fin.items.find((i) => i.id === body.id);
+    if (!entry) return sendJson(res, 404, { error: "Lançamento não encontrado" });
+    const draft = buildCollectionMessage(entry);
+    const item = {
+      id: crypto.randomUUID(),
+      senderName: `💸 Cobrança: ${entry.counterparty} (${entry.scope})`,
+      senderPhone: entry.contact_phone || "",
+      text: `Cobrança referente a "${entry.description}" — R$ ${Number(entry.amount).toFixed(2)} (venc. ${entry.due_date})`,
+      pillar: "Financeiro/Cobrança",
+      priority: "alta",
+      draftReply: draft,
+      status: "pending",
+      simulated: !entry.contact_phone,
+      time: nowTimeStr(),
+      createdAt: new Date().toISOString(),
+    };
+    const inbox = loadInbox();
+    inbox.unshift(item);
+    saveInbox(inbox);
+    broadcastEvent("inbox_update", { item });
+    return sendJson(res, 200, { ok: true, inbox });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/car/talk") {
+    const body = await readJsonBody(req);
+    const mode = body.mode || "en"; // en | es | radio
+    const text = String(body.text || "").trim();
+
+    if (mode === "radio") {
+      const todayStr = getLocalDateStr(0);
+      const [cal, fin, bdays] = await Promise.all([
+        fetchCalendarDate(todayStr),
+        getFinanceSummary(__dirname),
+        getUpcomingBirthdays(__dirname, 14),
+      ]);
+      const holiday = getHolidayInfo(todayStr);
+      const topTasks = parseKanban().flatMap((s) => s.items.filter((i) => i.status !== "x")).slice(0, 3).map((t) => t.text);
+      const script = [
+        `Bom caminho no volante, Bruno! Aqui é a Valkyrie com seu resumo em 60 segundos.`,
+        holiday.isHoliday ? `Hoje é feriado de ${holiday.name}, então a B3 está fechada.` : `Janela de Day Trade das nove às onze com meta de quinhentos reais.`,
+        cal.events.length ? `Na sua agenda hoje: ${cal.events.map((e) => `${e.summary} às ${formatTime(e.start)}`).join(", ")}.` : `Sua agenda de hoje está livre.`,
+        topTasks.length ? `Suas prioridades corporativas são: ${topTasks.join("; ")}.` : "",
+        fin.overdueReceivables.length ? `Atenção financeira: você tem ${fin.overdueReceivables.length} cobrança atrasada para receber.` : "",
+        bdays.length ? `Aniversário chegando: ${bdays[0].name} em ${bdays[0].daysUntil} dias.` : "",
+        `Boa direção! Quando quiser treinar inglês ou espanhol, é só tocar no botão.`,
+      ].filter(Boolean).join(" ");
+      if (IS_MAC && voiceAlertsEnabled) speakMac(script, LANGUAGE_VOICES.pt);
+      return sendJson(res, 200, { reply: script, voice: LANGUAGE_VOICES.pt, lang: "pt" });
+    }
+
+    const prompt = getLanguageCoachPrompt(mode, text || (mode === "en" ? "Hi Valkyrie, let's start our 10-minute English practice while I drive!" : "¡Hola Valkyrie, empecemos nuestros 10 minutos de práctica de español mientras conduzco!"));
+    const ai = await runSimplePromptAI({ preferredProvider, systemPrompt: prompt.system, userText: prompt.user });
+    if (IS_MAC && voiceAlertsEnabled) speakMac(ai.reply, prompt.voice);
+    return sendJson(res, 200, { reply: ai.reply, voice: prompt.voice, lang: mode, providerUsed: ai.providerUsed });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/car/complete") {
+    const body = await readJsonBody(req);
+    const saved = logLanguageSession(__dirname, {
+      date: getLocalDateStr(0),
+      language: body.lang === "es" ? "es" : "en",
+      durationSec: Number(body.durationSec || 600),
+      topic: body.topic || "Modo Carro",
+    });
+    return sendJson(res, 200, { ok: true, saved, languageSessions: listLanguageSessions(__dirname).slice(0, 14) });
   }
 
   if (req.method === "POST" && url.pathname === "/api/speak/stop") {

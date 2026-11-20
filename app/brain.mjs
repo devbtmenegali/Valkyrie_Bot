@@ -187,6 +187,68 @@ const BASE_TOOLS = [
       required: ["pillar", "fact"],
     },
   },
+  {
+    name: "manage_contact",
+    description: "Cadastra ou atualiza um contato (família como Val, Lucca, Caio; fornecedores da Nossa Casa; sócios; clientes) com telefone, aniversário (MM-DD) e dicas/gostos de presente.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Nome do contato" },
+        category: { type: "string", description: "familia, fornecedor, socio, cliente ou outro" },
+        relation: { type: "string", description: "Relação (ex: Esposa, Filho, Fornecedor Móveis)" },
+        phone: { type: "string", description: "WhatsApp com DDD (ex: 5548999999999)" },
+        birthday: { type: "string", description: "Aniversário no formato MM-DD (ex: 05-14)" },
+        gift_preferences: { type: "string", description: "Gostos ou ideias de presente" },
+        company: { type: "string", description: "Empresa (se fornecedor ou sócio)" },
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "get_upcoming_birthdays",
+    description: "Verifica aniversários de familiares e contatos nos próximos 30 dias para lembrar o Bruno e sugerir presentes.",
+    parameters: {
+      type: "object",
+      properties: {
+        days_ahead: { type: "number", description: "Quantos dias à frente consultar (padrão 30)" },
+      },
+    },
+  },
+  {
+    name: "manage_finance_entry",
+    description: "Lança uma conta a pagar ou a receber (PF, GluN, Nossa Casa, ProntoMed, CliniMind) com valor e vencimento.",
+    parameters: {
+      type: "object",
+      properties: {
+        kind: { type: "string", description: "pagar ou receber" },
+        scope: { type: "string", description: "PF, GluN, Nossa Casa, ProntoMed ou CliniMind" },
+        counterparty: { type: "string", description: "Nome do fornecedor, cliente, banco ou pessoa" },
+        description: { type: "string", description: "Descrição da conta/pagamento" },
+        amount: { type: "number", description: "Valor em reais (ex: 1250.50)" },
+        due_date: { type: "string", description: "Data de vencimento YYYY-MM-DD" },
+        ir_deductible: { type: "boolean", description: "true se for dedutível no Imposto de Renda" },
+      },
+      required: ["kind", "counterparty", "description", "amount"],
+    },
+  },
+  {
+    name: "get_finance_summary",
+    description: "Retorna o resumo financeiro atual: total a pagar, a receber, contas atrasadas e clientes que precisam de cobrança.",
+    parameters: { type: "object", properties: {} },
+  },
+  {
+    name: "queue_whatsapp_outbound",
+    description: "Prepara uma mensagem de WhatsApp para família (Val, Lucca, Caio), fornecedor da Nossa Casa ou cobrança de cliente e coloca na fila de aprovação da Triagem WhatsApp.",
+    parameters: {
+      type: "object",
+      properties: {
+        recipient_name: { type: "string", description: "Nome do destinatário (ex: Val, Lucca, Caio, Fornecedor X)" },
+        message: { type: "string", description: "Texto da mensagem a ser enviada" },
+        pillar: { type: "string", description: "Família, Nossa Casa, Financeiro/Cobrança ou Geral" },
+      },
+      required: ["recipient_name", "message"],
+    },
+  },
 ];
 
 function toGeminiSchema(schema) {
@@ -285,6 +347,21 @@ function makeToolExecutor({ todayStr, memoryPath, helpers, executedTools }) {
     }
     if (name === "save_memory_fact") {
       return { ok: true, saved: saveMemoryFact(memoryPath, args) };
+    }
+    if (name === "manage_contact" && helpers.upsertContact) {
+      return { ok: true, contact: await helpers.upsertContact(args) };
+    }
+    if (name === "get_upcoming_birthdays" && helpers.getUpcomingBirthdays) {
+      return { ok: true, birthdays: await helpers.getUpcomingBirthdays(args.days_ahead || 30) };
+    }
+    if (name === "manage_finance_entry" && helpers.addFinanceEntry) {
+      return { ok: true, entry: await helpers.addFinanceEntry(args) };
+    }
+    if (name === "get_finance_summary" && helpers.getFinanceSummary) {
+      return await helpers.getFinanceSummary();
+    }
+    if (name === "queue_whatsapp_outbound" && helpers.queueOutboundMessage) {
+      return { ok: true, queued: await helpers.queueOutboundMessage(args) };
     }
     return { error: `Ferramenta desconhecida: ${name}` };
   };
@@ -431,4 +508,59 @@ export async function runValkyrieAI({
   }
 
   throw new Error(errors.join(" | ") || "Nenhuma chave de IA configurada");
+}
+
+// ---------- Language Coach Runner (Modo Carro: Inglês / Espanhol) ----------
+export async function runSimplePromptAI({ preferredProvider = "auto", systemPrompt, userText }) {
+  const defaultOrder = ["openai", "mistral", "qwen", "gemini", "xai"];
+  const order = preferredProvider && preferredProvider !== "auto" && PROVIDERS[preferredProvider]
+    ? [preferredProvider, ...defaultOrder.filter((id) => id !== preferredProvider)]
+    : defaultOrder;
+
+  for (const id of order) {
+    const provider = PROVIDERS[id];
+    const apiKey = getKeyFor(provider);
+    if (!apiKey) continue;
+    try {
+      if (provider.type === "gemini") {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(provider.model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            signal: AbortSignal.timeout(15000),
+            body: JSON.stringify({
+              system_instruction: { parts: [{ text: systemPrompt }] },
+              contents: [{ role: "user", parts: [{ text: userText }] }],
+              generationConfig: { temperature: 0.5, maxOutputTokens: 220 },
+            }),
+          }
+        );
+        if (!res.ok) continue;
+        const data = await res.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (text) return { reply: text, providerUsed: provider.label };
+      } else {
+        const res = await fetch(provider.url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+          signal: AbortSignal.timeout(15000),
+          body: JSON.stringify({
+            model: provider.model,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userText },
+            ],
+            temperature: 0.5,
+            max_tokens: 220,
+          }),
+        });
+        if (!res.ok) continue;
+        const data = await res.json();
+        const text = data?.choices?.[0]?.message?.content?.trim();
+        if (text) return { reply: text, providerUsed: provider.label };
+      }
+    } catch {}
+  }
+  throw new Error("Nenhum motor de IA respondeu");
 }

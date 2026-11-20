@@ -4,6 +4,9 @@ app/.venv/
 app/chat-history.json
 app/whatsapp-inbox.json
 app/memory.json
+app/contacts.json
+app/finance.json
+app/language-sessions.json
 Valkyrie.app/
 .DS_Store
 node_modules/
