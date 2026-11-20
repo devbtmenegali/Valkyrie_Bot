@@ -407,7 +407,20 @@ Regras:
   }
 }
 
+function isObviousNoise(text) {
+  const clean = String(text || "")
+    .toLowerCase()
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}!?.,\s]+/gu, " ")
+    .trim();
+  if (clean.length < 4) return true;
+  return /^(ok+|okay|kk+|rs+|ha+|haha+|hehe+|sim|n[aã]o|blz|beleza|valeu|vlw|obrigad[oa]|obg|tmj|top|show|massa|legal|am[eé]m|bom dia|boa tarde|boa noite|tudo bem|td bem|joinha|fechou|combinado|perfeito|certo|entendi|show de bola)$/.test(clean);
+}
+
 async function ingestWhatsAppMessage({ senderName, senderPhone, text, simulated = false, isGroup = false }) {
+  // Pré-filtro gratuito: descarta ruído óbvio (ok, kkk, emojis, bom dia) sem gastar 1 token de IA
+  if (!simulated && isObviousNoise(text)) {
+    return null;
+  }
   const fallbackPillar = detectPillar(text);
   const fallbackPriority = detectPriority(text, fallbackPillar);
   const analysis = await analyzeWhatsAppWithAI(senderName, text, fallbackPillar, fallbackPriority, isGroup);
