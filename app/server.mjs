@@ -1091,7 +1091,7 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { habits: saveTodayHabits(body) });
   }
 
-  if (req.method === "POST" && url.pathname === "/webhook/evolution") {
+  if (req.method === "POST" && url.pathname.startsWith("/webhook/evolution")) {
     if (WEBHOOK_SECRET && req.headers["x-webhook-secret"] !== WEBHOOK_SECRET) {
       res.writeHead(401);
       return res.end("Unauthorized");
@@ -1102,6 +1102,7 @@ const server = http.createServer(async (req, res) => {
     const isGroup = remoteJid.endsWith("@g.us");
     const msg = payload?.data?.message || {};
     const text = (msg.conversation || msg.extendedTextMessage?.text || msg.imageMessage?.caption || msg.videoMessage?.caption || "").trim();
+    console.log(`[Webhook Evolution] path=${url.pathname} fromMe=${fromMe} jid=${remoteJid} textLen=${text.length}`);
     if (!fromMe && text) {
       const senderPhone = remoteJid.replace(/\D/g, "");
       const senderName = (payload?.data?.pushName || senderPhone) + (isGroup ? " (Grupo)" : "");
