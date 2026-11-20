@@ -130,6 +130,32 @@ const BASE_TOOLS = [
     },
   },
   {
+    name: "update_calendar_event",
+    description: "Ajusta/move/renomeia um evento existente no Google Calendar do Bruno pelo event_id (obtido via get_calendar_events).",
+    parameters: {
+      type: "object",
+      properties: {
+        event_id: { type: "string", description: "ID exato do evento retornado por get_calendar_events" },
+        summary: { type: "string", description: "Novo título opcional" },
+        start: { type: "string", description: "Novo início em RFC3339 com offset -03:00 (ex: 2026-11-20T16:00:00-03:00)" },
+        end: { type: "string", description: "Novo fim em RFC3339 com offset -03:00 (ex: 2026-11-20T17:00:00-03:00)" },
+        description: { type: "string", description: "Nova descrição opcional" },
+      },
+      required: ["event_id"],
+    },
+  },
+  {
+    name: "delete_calendar_event",
+    description: "Remove/cancela um evento do Google Calendar do Bruno pelo event_id (SOMENTE quando o Bruno pedir explicitamente para apagar/remover/cancelar aquele evento).",
+    parameters: {
+      type: "object",
+      properties: {
+        event_id: { type: "string", description: "ID exato do evento retornado por get_calendar_events" },
+      },
+      required: ["event_id"],
+    },
+  },
+  {
     name: "list_kanban_tasks",
     description: "Lista todas as tarefas abertas e concluídas do Kanban (GluN Capital, ProntoMed, CliniMind, Nossa Casa, Inbox).",
     parameters: {
@@ -410,7 +436,23 @@ function makeToolExecutor({ todayStr, memoryPath, helpers, executedTools }) {
       ];
       if (args.description) cmdArgs.push("--description", String(args.description));
       const res = await runGCalendar(cmdArgs);
-      return res.ok ? { ok: true, output: res.stdout.trim() } : { ok: false, error: res.error };
+      if (res.ok) await helpers.fetchCalendarDate(String(args.start || todayStr).slice(0, 10));
+      return res.ok ? { ok: true, output: res.stdout.trim() } : { ok: false, error: "A escrita no Google Calendar funciona pelo app do Mac (gcalendar CLI não disponível na nuvem ainda)." };
+    }
+    if (name === "update_calendar_event") {
+      const cmdArgs = ["mutate", "update", String(args.event_id || ""), "--send-updates", "none"];
+      if (args.summary) cmdArgs.push("--summary", String(args.summary));
+      if (args.start) cmdArgs.push("--start", String(args.start));
+      if (args.end) cmdArgs.push("--end", String(args.end));
+      if (args.description) cmdArgs.push("--description", String(args.description));
+      const res = await runGCalendar(cmdArgs);
+      if (res.ok) await helpers.fetchCalendarDate(String(args.start || todayStr).slice(0, 10));
+      return res.ok ? { ok: true, output: res.stdout.trim() } : { ok: false, error: "A edição no Google Calendar funciona pelo app do Mac (gcalendar CLI não disponível na nuvem ainda)." };
+    }
+    if (name === "delete_calendar_event") {
+      const res = await runGCalendar(["mutate", "delete", String(args.event_id || ""), "--send-updates", "none"]);
+      if (res.ok) await helpers.fetchCalendarDate(todayStr);
+      return res.ok ? { ok: true, output: res.stdout.trim() } : { ok: false, error: "A remoção no Google Calendar funciona pelo app do Mac (gcalendar CLI não disponível na nuvem ainda)." };
     }
     if (name === "list_kanban_tasks") {
       const all = helpers.parseKanban();
