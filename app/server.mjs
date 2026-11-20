@@ -13,6 +13,7 @@ import { sendWhatsAppMessage } from "../whatsapp/send.mjs";
 import { runValkyrieAI, runSimplePromptAI, getConfiguredProviders, loadMemoryFacts, saveMemoryFact } from "./brain.mjs";
 import { getHolidayInfo } from "./holidays.mjs";
 import { fetchCalendarEvents, processCalendarQueue } from "./calendar.mjs";
+import { fetchPreMarketData, fetchEconomicCalendar } from "./market.mjs";
 import { listContacts, upsertContact, getUpcomingBirthdays, buildSupplierMessage, searchEvolutionContacts } from "./skills/contacts.mjs";
 import { listFinance, addFinanceEntry, markFinancePaid, getFinanceSummary, buildCollectionMessage } from "./skills/finance.mjs";
 import { LANGUAGE_VOICES, getLanguageCoachPrompt, listLanguageSessions, logLanguageSession } from "./skills/languages.mjs";
@@ -594,36 +595,69 @@ async function generateValkyrieReply(userText, providerOverride = null) {
   }
 
   if (lower === "/briefing") {
-    const cal = await fetchCalendarDate(todayStr);
+    const [cal, market, fin] = await Promise.all([
+      fetchCalendarDate(todayStr),
+      fetchPreMarketData(),
+      getFinanceSummary(__dirname),
+    ]);
     const conflicts = detectConflicts(cal.events);
     const pendingWa = loadInbox().filter((i) => i.status === "pending").length;
-    const topItems = kanban
+
+    // Tarefas abertas do dia anterior agrupadas
+    const openTasks = kanban
       .flatMap((s) => s.items.filter((i) => i.status !== "x").map((i) => ({ section: s.title, text: i.text })))
-      .slice(0, 3);
+      .slice(0, 4);
 
     const agendaLines = cal.events.length
       ? cal.events.map((e) => `• **${formatTime(e.start)}–${formatTime(e.end)}** | ${e.summary}`).join("\n")
       : "• Nenhum evento marcado no Google Calendar hoje.";
 
     const conflictNote = conflicts.length ? `\n⚠️ **Conflito detectado:** ${conflicts.join("; ")}` : "";
-    const holiday = getHolidayInfo(todayStr);
-    const tradeLine = holiday.isHoliday
-      ? `🏖️ **Feriado Nacional:** ${holiday.name} — **B3 fechada** (sem Day Trade hoje)`
-      : holiday.isWeekend
-      ? `📈 **Day Trade:** Fim de semana — **B3 fechada**`
-      : `📈 **Day Trade:** Meta R$ 500,00 | Janela inviolável 09:00–11:00 | Status: ${habits.tradeText}`;
+
+    // Indicadores Pré-Mercado
+    let marketLines = [];
+    if (!market.b3Open) {
+      marketLines.push(`🏖️ **Status B3:** Pregão Fechado (${market.holidayReason || "Feriado/Fim de semana"}) — Meta de Day Trade suspensa hoje.`);
+    } else {
+      marketLines.push(`📈 **Pré-Mercado Day Trade (09:00–11:00 | Meta: R$ 500 | Status: ${habits.tradeText}):**`);
+      if (market.usdBrl) marketLines.push(`• **Dólar (USD/BRL):** R$ ${market.usdBrl.bid} (${Number(market.usdBrl.pctChange) >= 0 ? "+" : ""}${market.usdBrl.pctChange}%)`);
+      const futures = [];
+      if (market.sp500Futures) futures.push(`S&P Futuro: ${market.sp500Futures.price} (${market.sp500Futures.pctChange}%)`);
+      if (market.nasdaqFutures) futures.push(`Nasdaq Futuro: ${market.nasdaqFutures.price} (${market.nasdaqFutures.pctChange}%)`);
+      if (futures.length) marketLines.push(`• **Futuros Globais:** ${futures.join(" | ")}`);
+      const comm = [];
+      if (market.brentCrude) comm.push(`Brent: $${market.brentCrude.price} (${market.brentCrude.pctChange}%)`);
+      if (market.treasury10Y) comm.push(`US 10Y: ${market.treasury10Y.price}%`);
+      if (comm.length) marketLines.push(`• **Commodities & Juros:** ${comm.join(" | ")}`);
+    }
+
+    // Agenda Econômica de Destaque conforme o dia
+    const weekdayIdx = new Date().getDay();
+    let macroEvent = "Divulgações de rotina dos mercados globais.";
+    if (weekdayIdx === 1) macroEvent = "08:25 BRT — Boletim Focus (Banco Central do Brasil)";
+    else if (weekdayIdx === 3) macroEvent = "11:30 BRT — Estoques de Petróleo EIA (EUA) / Decisões FOMC/Copom quando semana de Super Quarta";
+    else if (weekdayIdx === 4) macroEvent = "09:30 BRT — Pedidos de Seguro-Desemprego Semanal (EUA)";
+    else if (weekdayIdx === 5) macroEvent = "09:30 BRT — Payroll (1ª sexta) ou Indicadores de Confiança/Inflação EUA";
+
+    // Pagamentos e Finanças
+    const finAlert = fin.overdueReceivables.length
+      ? `\n⚠️ **Cobranças atrasadas:** ${fin.overdueReceivables.length} recebimento(s) pendente(s).`
+      : "";
 
     return [
-      `☀️ **Briefing Valkyrie — ${info.dayName} (${todayStr.split("-").reverse().join("/")})**`,
+      `☀️ **Briefing Executivo Kyrie — ${info.dayName} (${todayStr.split("-").reverse().join("/")})**`,
       ``,
-      `🏋️ **Saúde:** ${info.workout} (${habits.workoutDone ? "✅ Feito" : "⬜ Pendente"}) | Leitura 30m (${habits.readingDone ? "✅ Feita" : "⬜ Pendente"})`,
-      tradeLine,
-      `📥 **Triagem WhatsApp:** ${pendingWa} mensage${pendingWa === 1 ? "m pendente" : "ns pendentes"}`,
-      `🏢 **Foco Corporativo (Top 3):**`,
-      ...topItems.map((t, i) => `${i + 1}. ${t.text}`),
-      `🎓 **Agenda (Google Calendar):**`,
-      agendaLines + conflictNote,
-    ].join("\n");
+      `🏋️ **Saúde & Hábitos:** ${info.workout} (${habits.workoutDone ? "✅ Feito" : "⬜ Pendente"}) | Leitura 30m (${habits.readingDone ? "✅ Feita" : "⬜ Pendente"})`,
+      ...marketLines,
+      `📊 **Agenda Econômica do Dia:** ${macroEvent}`,
+      ``,
+      `📋 **Cobrança de Pendências do Dia Anterior (Kanban):**`,
+      ...openTasks.map((t, i) => `${i + 1}. **[${t.section.replace(/Pilar \d+:\s*/, "")}]** ${t.text}`),
+      ``,
+      `🎓 **Agenda do Dia (Google Calendar):**`,
+      agendaLines + conflictNote + finAlert,
+      pendingWa > 0 ? `\n📥 **WhatsApp:** ${pendingWa} mensagem(ns) pendente(s) de aprovação.` : "",
+    ].filter(Boolean).join("\n");
   }
 
   if (lower === "/agenda") {
@@ -1018,6 +1052,51 @@ const server = http.createServer(async (req, res) => {
     const body = await readJsonBody(req);
     if (body.text) speakMac(body.text, body.voice || LANGUAGE_VOICES[body.lang] || null);
     return sendJson(res, 200, { ok: true });
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/briefing") {
+    const todayStr = getLocalDateStr(0);
+    const info = getWeekdayInfo(0);
+    const habits = getTodayHabits();
+    const kanban = parseKanban();
+    const [cal, market, fin] = await Promise.all([
+      fetchCalendarDate(todayStr),
+      fetchPreMarketData(),
+      getFinanceSummary(__dirname),
+    ]);
+    const conflicts = detectConflicts(cal.events);
+    const openTasks = kanban
+      .flatMap((s) => s.items.filter((i) => i.status !== "x").map((i) => ({ section: s.title, text: i.text })))
+      .slice(0, 4);
+
+    const agendaLines = cal.events.length
+      ? cal.events.map((e) => `• ${formatTime(e.start)} às ${formatTime(e.end)}: ${e.summary}`).join(". ")
+      : "Nenhuma reunião marcada no Google Calendar hoje.";
+
+    let marketSpeech = "";
+    if (!market.b3Open) {
+      marketSpeech = `Atenção: a B3 está fechada hoje por conta do feriado de ${market.holidayReason || "feriado nacional"}. Suas operações de Day Trade estão suspensas.`;
+    } else {
+      marketSpeech = `Mercado aberto para Day Trade das 9 às 11, com meta de 500 reais. O dólar está cotado a ${market.usdBrl?.bid || "5 vírgula 94"}. O S&P futuro opera em ${market.sp500Futures?.pctChange || "0"} por cento e o Nasdaq futuro em ${market.nasdaqFutures?.pctChange || "0"} por cento.`;
+    }
+
+    const tasksSpeech = openTasks.length
+      ? `Temos pendências importantes de ontem: ${openTasks.map((t) => t.text).join(". ")}.`
+      : "Todas as tarefas principais de ontem foram concluídas.";
+
+    const spokenText = `Bom dia, Bruno! Aqui é a Kyrie com seu Briefing Executivo. Hoje é ${info.dayName}. Seu treino de hoje é ${info.workout}. ${marketSpeech} Na sua agenda: ${agendaLines}. ${tasksSpeech} Qual é a nossa prioridade número um para destravar agora?`;
+
+    return sendJson(res, 200, {
+      ok: true,
+      today: todayStr,
+      dayName: info.dayName,
+      workout: info.workout,
+      market,
+      spokenText,
+      conflicts,
+      openTasks,
+      agendaCount: cal.events.length,
+    });
   }
 
   // ---------- Skill Endpoints: Contatos, Finanças & Modo Carro / Idiomas ----------
