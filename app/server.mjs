@@ -375,14 +375,17 @@ async function getPendingWhatsApp() {
   return { count: pending.length, items: pending.slice(0, 15) };
 }
 
-async function analyzeWhatsAppWithAI(senderName, text, fallbackPillar, fallbackPriority) {
+async function analyzeWhatsAppWithAI(senderName, text, fallbackPillar, fallbackPriority, isGroup = false) {
   try {
     const ai = await runSimplePromptAI({
       preferredProvider,
-      systemPrompt: `Você é a Valkyrie, Chief of Staff de Bruno Menegali. Analise esta mensagem de WhatsApp recebida e responda APENAS com um JSON válido (sem markdown):
+      systemPrompt: `Você é a Valkyrie, Chief of Staff de Bruno Menegali. Você lê TODAS as mensagens do WhatsApp (individuais e grupos) e decide o que realmente é para o Bruno.
+Responda APENAS com um JSON válido (sem markdown):
 {"needs_bruno": true/false, "priority": "alta"|"media"|"baixa", "pillar": "GluN Capital"|"ProntoMed"|"CliniMind"|"Nossa Casa"|"Docência"|"Financeiro PF"|"Família"|"Geral", "summary": "resumo curto do que precisa do Bruno", "draft_reply": "rascunho humano e curto de resposta em nome do Bruno"}
-Regra: marque needs_bruno=false APENAS para ruído puro sem ação necessária (ex: 'bom dia', 'ok', 'obrigado', 'valeu', 'kkk', '👍', propaganda).`,
-      userText: `Remetente: ${senderName}\nMensagem: "${text}"`,
+Regras:
+- Se for mensagem de GRUPO: marque needs_bruno=true APENAS se citar o Bruno, exigir decisão/resposta dele, envolver prazo/urgência de GluN, ProntoMed, CliniMind, Nossa Casa, UNISUL/UNIBAVE ou família (Val, Lucca, Caio). Conversas paralelas de terceiros em grupo = needs_bruno=false.
+- Se for mensagem INDIVIDUAL: marque needs_bruno=false APENAS para ruído puro sem ação necessária (ex: 'bom dia', 'ok', 'obrigado', 'valeu', 'kkk', propaganda).`,
+      userText: `Origem: ${isGroup ? "GRUPO" : "CONVERSA INDIVIDUAL"}\nRemetente: ${senderName}\nMensagem: "${text}"`,
     });
     const raw = (ai.reply || "").replace(/^```json\s*|\s*```$/g, "").trim();
     const parsed = JSON.parse(raw);
@@ -404,10 +407,10 @@ Regra: marque needs_bruno=false APENAS para ruído puro sem ação necessária (
   }
 }
 
-async function ingestWhatsAppMessage({ senderName, senderPhone, text, simulated = false }) {
+async function ingestWhatsAppMessage({ senderName, senderPhone, text, simulated = false, isGroup = false }) {
   const fallbackPillar = detectPillar(text);
   const fallbackPriority = detectPriority(text, fallbackPillar);
-  const analysis = await analyzeWhatsAppWithAI(senderName, text, fallbackPillar, fallbackPriority);
+  const analysis = await analyzeWhatsAppWithAI(senderName, text, fallbackPillar, fallbackPriority, isGroup);
 
   const item = {
     id: crypto.randomUUID(),
@@ -1085,11 +1088,11 @@ const server = http.createServer(async (req, res) => {
     const remoteJid = payload?.data?.key?.remoteJid || "";
     const isGroup = remoteJid.endsWith("@g.us");
     const msg = payload?.data?.message || {};
-    const text = (msg.conversation || msg.extendedTextMessage?.text || msg.imageMessage?.caption || "").trim();
-    if (!fromMe && !isGroup && text) {
+    const text = (msg.conversation || msg.extendedTextMessage?.text || msg.imageMessage?.caption || msg.videoMessage?.caption || "").trim();
+    if (!fromMe && text) {
       const senderPhone = remoteJid.replace(/\D/g, "");
-      const senderName = payload?.data?.pushName || senderPhone;
-      await ingestWhatsAppMessage({ senderName, senderPhone, text, simulated: false });
+      const senderName = (payload?.data?.pushName || senderPhone) + (isGroup ? " (Grupo)" : "");
+      await ingestWhatsAppMessage({ senderName, senderPhone, text, simulated: false, isGroup });
     }
     return sendJson(res, 200, { received: true });
   }
