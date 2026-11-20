@@ -18,6 +18,7 @@ import { listFinance, addFinanceEntry, markFinancePaid, getFinanceSummary, build
 import { LANGUAGE_VOICES, getLanguageCoachPrompt, listLanguageSessions, logLanguageSession } from "./skills/languages.mjs";
 import { fetchLiveNews, loadCachedRadar, saveCachedRadar, buildRadarPrompt } from "./skills/radar.mjs";
 import { macOpenApp, macOpenUrl, macSearchFiles, macOpenFile, macSystemControl } from "./skills/mac.mjs";
+import { createProactiveEngine } from "./proactive.mjs";
 import {
   isSupabaseEnabled,
   sbCheckReady,
@@ -661,31 +662,27 @@ async function generateOrGetRadar(forceRefresh = false) {
   return result;
 }
 
-// ---------- Proactive Voice + Notification Scheduler ----------
-let lastAlertKey = "";
-setInterval(() => {
-  const now = new Date();
-  const hhmm = now.toLocaleTimeString("pt-BR", { timeZone: TZ, hour: "2-digit", minute: "2-digit" });
-  const dateKey = getLocalDateStr(0);
-  const info = getWeekdayInfo(0);
-  const key = `${dateKey}-${hhmm}`;
-  if (key === lastAlertKey) return;
-
-  const holiday = getHolidayInfo(dateKey);
-
-  if (hhmm === "06:30") {
-    lastAlertKey = key;
-    const holidaySuffix = holiday.isHoliday ? ` Hoje é feriado de ${holiday.name}, então a B3 está fechada.` : "";
-    const msg = `Bom dia, Bruno! Aqui é a Valkyrie.${holidaySuffix} Hoje é dia de ${info.workout}. Seu briefing matinal já está pronto.`;
-    broadcastEvent("notification", { title: "☀️ Valkyrie — Briefing Matinal (06:30)", body: msg, tag: "briefing-matinal" });
-    if (voiceAlertsEnabled) speakMac(msg);
-  } else if (hhmm === "08:45" && !holiday.b3Closed) {
-    lastAlertKey = key;
-    const msg = "Bruno, faltam quinze minutos para a abertura da sua janela inviolável de Day Trade, das nove às onze. Meta de quinhentos reais e disciplina total no stop.";
-    broadcastEvent("notification", { title: "📈 Valkyrie — Pré-Mercado Day Trade (08:45)", body: msg, tag: "pre-mercado" });
-    if (voiceAlertsEnabled) speakMac(msg);
-  }
-}, 20000);
+// ---------- Proactive Chief of Staff Engine (06:30, 08:45, 11:15, 14:00, 16:30, 21:00 + 15m antes de eventos) ----------
+const proactiveEngine = createProactiveEngine({
+  runSimplePromptAI,
+  getPreferredProvider: () => preferredProvider,
+  fetchCalendarDate,
+  parseKanban,
+  getTodayHabits,
+  getWeekdayInfo,
+  getFinanceSummary: () => getFinanceSummary(__dirname),
+  getUpcomingBirthdays: (days) => getUpcomingBirthdays(__dirname, days),
+  onProactiveMessage: async ({ title, text, providerUsed, tag }) => {
+    const history = loadHistory();
+    const botMsg = { role: "valkyrie", time: nowTimeStr(), text, tools: ["proactive_checkin"], providerUsed };
+    history.push(botMsg);
+    saveHistory(history);
+    sbAppendMessage(botMsg).catch(() => {});
+    broadcastEvent("notification", { title, body: text, tag });
+    if (IS_MAC && voiceAlertsEnabled) speakMac(text);
+  },
+});
+proactiveEngine.start();
 
 // ---------- HTTP Helpers & Routes ----------
 function readJsonBody(req) {
@@ -952,6 +949,11 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "POST" && url.pathname === "/api/radar/refresh") {
     const data = await generateOrGetRadar(true);
     return sendJson(res, 200, data);
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/proactive/now") {
+    const text = await proactiveEngine.triggerNow();
+    return sendJson(res, 200, { ok: Boolean(text), reply: text, history: loadHistory() });
   }
 
   if (req.method === "POST" && url.pathname === "/api/radar/feedback") {

@@ -367,6 +367,7 @@
       </div>
 
       <div class="quick-bar">
+        <button class="quick-chip" style="border-color:var(--accent);color:var(--accent);" onclick="askProactiveNow()">⚡ O que faço agora?</button>
         <button class="quick-chip" onclick="sendQuick('/briefing')">☀️ Briefing</button>
         <button class="quick-chip" onclick="sendQuick('/agenda')">📅 Agenda Hoje</button>
         <button class="quick-chip" onclick="sendQuick('agenda amanhã')">🗓️ Amanhã</button>
@@ -1141,6 +1142,16 @@
       sendText(val);
     }
     function sendQuick(cmd) { sendText(cmd); }
+
+    async function askProactiveNow() {
+      const res = await fetch("/api/proactive/now", { method: "POST" });
+      const data = await res.json();
+      if (data.history && currentState) {
+        currentState.history = data.history;
+        renderState(currentState);
+        if (currentState.isCloud && voiceEnabled && data.reply) speakText(data.reply, "pt");
+      }
+    }
 
     async function toggleKanban(lineIndex) {
       const res = await fetch("/api/kanban/toggle", {
