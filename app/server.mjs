@@ -17,6 +17,7 @@ import { listContacts, upsertContact, getUpcomingBirthdays, buildSupplierMessage
 import { listFinance, addFinanceEntry, markFinancePaid, getFinanceSummary, buildCollectionMessage } from "./skills/finance.mjs";
 import { LANGUAGE_VOICES, getLanguageCoachPrompt, listLanguageSessions, logLanguageSession } from "./skills/languages.mjs";
 import { fetchLiveNews, loadCachedRadar, saveCachedRadar, buildRadarPrompt } from "./skills/radar.mjs";
+import { macOpenApp, macOpenUrl, macSearchFiles, macOpenFile, macSystemControl } from "./skills/mac.mjs";
 import {
   isSupabaseEnabled,
   sbCheckReady,
@@ -613,6 +614,11 @@ async function generateValkyrieReply(userText, providerOverride = null) {
             return item;
           },
           getStrategicRadar: () => generateOrGetRadar(false),
+          macOpenApp,
+          macOpenUrl,
+          macSearchFiles,
+          macOpenFile,
+          macSystemControl,
         },
       });
       return result;

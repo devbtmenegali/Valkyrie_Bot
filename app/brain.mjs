@@ -254,6 +254,57 @@ const BASE_TOOLS = [
     description: "Busca notícias reais de hoje (mercado financeiro, leilões/imóveis, healthtech, varejo) e gera oportunidades de investimento, ideias de negócio e melhores práticas personalizadas para o Bruno.",
     parameters: { type: "object", properties: {} },
   },
+  {
+    name: "mac_open_app",
+    description: "Abre um aplicativo instalado no Mac do Bruno (ex: Safari, Google Chrome, Notes, Finder, WhatsApp, Spotify, Calendar).",
+    parameters: {
+      type: "object",
+      properties: { appName: { type: "string", description: "Nome exato do aplicativo no macOS" } },
+      required: ["appName"],
+    },
+  },
+  {
+    name: "mac_open_url",
+    description: "Abre um site ou link diretamente no navegador do Mac do Bruno (ex: https://gluncapitalsa.com).",
+    parameters: {
+      type: "object",
+      properties: { url: { type: "string", description: "URL completa começando com https://" } },
+      required: ["url"],
+    },
+  },
+  {
+    name: "mac_search_files",
+    description: "Pesquisa arquivos no Mac do Bruno usando Spotlight (Desktop, Documents, Downloads ou Home).",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Nome ou palavra-chave do arquivo" },
+        folder: { type: "string", description: "Desktop, Documents, Downloads ou Home" },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "mac_open_file",
+    description: "Abre um arquivo ou pasta específica no Mac do Bruno (dentro da pasta do usuário).",
+    parameters: {
+      type: "object",
+      properties: { filePath: { type: "string", description: "Caminho completo do arquivo no Mac" } },
+      required: ["filePath"],
+    },
+  },
+  {
+    name: "mac_system_control",
+    description: "Executa ações úteis no Mac: copiar texto para Cmd+V (clipboard_copy), ajustar volume (volume_set 0-100, volume_mute, volume_unmute), enviar notificação nativa (notify) ou criar nota no Apple Notes (create_apple_note).",
+    parameters: {
+      type: "object",
+      properties: {
+        action: { type: "string", description: "clipboard_copy | volume_set | volume_mute | volume_unmute | notify | create_apple_note" },
+        value: { type: "string", description: "Texto ou número (0-100 para volume)" },
+      },
+      required: ["action"],
+    },
+  },
 ];
 
 function toGeminiSchema(schema) {
@@ -380,6 +431,11 @@ function makeToolExecutor({ todayStr, memoryPath, helpers, executedTools }) {
     if (name === "get_strategic_radar" && helpers.getStrategicRadar) {
       return await helpers.getStrategicRadar();
     }
+    if (name === "mac_open_app" && helpers.macOpenApp) return await helpers.macOpenApp(args.appName);
+    if (name === "mac_open_url" && helpers.macOpenUrl) return await helpers.macOpenUrl(args.url);
+    if (name === "mac_search_files" && helpers.macSearchFiles) return await helpers.macSearchFiles(args.query, args.folder);
+    if (name === "mac_open_file" && helpers.macOpenFile) return await helpers.macOpenFile(args.filePath);
+    if (name === "mac_system_control" && helpers.macSystemControl) return await helpers.macSystemControl(args);
     return { error: `Ferramenta desconhecida: ${name}` };
   };
 }
