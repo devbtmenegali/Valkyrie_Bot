@@ -612,7 +612,16 @@ async function generateValkyrieReply(userText, providerOverride = null) {
             inbox.unshift(item);
             saveInbox(inbox);
             broadcastEvent("inbox_update", { item });
-            return item;
+            const connected = Boolean(process.env.EVOLUTION_API_URL && process.env.EVOLUTION_API_KEY);
+            return {
+              queued: true,
+              sentNow: false,
+              whatsappConnected: connected,
+              instructionForAI: connected
+                ? "NÃO diga que já enviou! Diga ao Bruno que o rascunho foi colocado na aba WhatsApp aguardando 1 clique dele em 'Aprovar e Enviar'."
+                : "NÃO diga que enviou! Seja honesta: informe que a mensagem ficou salva como rascunho na aba WhatsApp, mas a Evolution API (QR Code do WhatsApp) ainda não está conectada para disparo real.",
+              item,
+            };
           },
           getStrategicRadar: () => generateOrGetRadar(false),
           macOpenApp,
