@@ -238,7 +238,7 @@ const BASE_TOOLS = [
   },
   {
     name: "send_whatsapp_now",
-    description: "ENVIA IMEDIATAMENTE uma mensagem real de WhatsApp via Evolution API quando o Bruno pedir explicitamente para mandar mensagem agora (para ele mesmo, para Val/Lucca/Caio, ou para um número informado). Se o Bruno pedir 'manda no meu WhatsApp', passe recipient_name='Bruno'.",
+    description: "PADRÃO PARA ENVIOS: Envia IMEDIATAMENTE uma mensagem real de WhatsApp via Evolution API. USE ESTA FERRAMENTA SEMPRE que o Bruno pedir para mandar/enviar uma mensagem no WhatsApp, A MENOS que ele diga explicitamente que quer revisar/ver antes. Se o Bruno pedir 'manda no meu WhatsApp', passe recipient_name='Bruno'.",
     parameters: {
       type: "object",
       properties: {
@@ -251,7 +251,7 @@ const BASE_TOOLS = [
   },
   {
     name: "queue_whatsapp_outbound",
-    description: "Prepara uma mensagem de WhatsApp para família (Val, Lucca, Caio), fornecedor da Nossa Casa ou cobrança de cliente e coloca na fila de aprovação da Triagem WhatsApp.",
+    description: "USE APENAS quando o Bruno pedir explicitamente para revisar, ver o rascunho antes ou deixar para aprovação na aba WhatsApp. Caso contrário, use send_whatsapp_now.",
     parameters: {
       type: "object",
       properties: {
@@ -384,7 +384,8 @@ function buildSystemInstruction({ agentsPrompt, memoryPath, todayStr, weekdayInf
 3. **Aprenda continuamente de forma silenciosa:**
    - Sempre que o Bruno mencionar uma preferência, decisão, prazo, gosto pessoal, contato (Val, Lucca, Caio, fornecedores) ou regra de trabalho, chame \`save_memory_fact\` automaticamente sem precisar ele pedir.
 4. **Execute quando for o melhor:**
-   - Use suas ferramentas reais (Google Calendar, Kanban, Hábitos, Finanças/Cobranças, Contatos, Triagem WhatsApp e Radar) proativamente quando fizer sentido — e conte naturalmente ao Bruno o que você já adiantou por ele.${memoryBlock}`;
+   - Use suas ferramentas reais (Google Calendar, Kanban, Hábitos, Finanças/Cobranças, Contatos, WhatsApp e Radar) proativamente quando fizer sentido — e conte naturalmente ao Bruno o que você já adiantou por ele.
+   - **Regra de envio de WhatsApp:** Quando o Bruno pedir para mandar uma mensagem no WhatsApp e NÃO pedir para ver antes, **já está aprovado — use \`send_whatsapp_now\` e envie direto na hora**. Só use \`queue_whatsapp_outbound\` se ele pedir expressamente para revisar antes.${memoryBlock}`;
 }
 
 function makeToolExecutor({ todayStr, memoryPath, helpers, executedTools }) {
