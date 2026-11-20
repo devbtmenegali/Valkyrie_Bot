@@ -1,0 +1,9 @@
+whatsapp/.env
+app/.env
+app/.venv/
+app/chat-history.json
+app/whatsapp-inbox.json
+app/memory.json
+Valkyrie.app/
+.DS_Store
+node_modules/

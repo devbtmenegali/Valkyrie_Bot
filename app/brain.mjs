@@ -1,0 +1,432 @@
+/**
+ * Valkyrie Multi-AI Brain — Gemini + OpenAI + Grok (xAI) + Qwen (DashScope) + Mistral
+ * Suporta Function Calling real em todos os 5 provedores + Fallback Automático + Memória Persistente
+ */
+import fs from "node:fs";
+import path from "node:path";
+import crypto from "node:crypto";
+import { execFile } from "node:child_process";
+import { getHolidayInfo } from "./holidays.mjs";
+
+const PROVIDERS = {
+  gemini: {
+    id: "gemini",
+    label: "Gemini 3.8 Flash",
+    envKey: "GOOGLE_API_KEY",
+    altEnvKey: "GEMINI_API_KEY",
+    model: process.env.GEMINI_MODEL || "gemini-3.8-flash",
+    type: "gemini",
+  },
+  openai: {
+    id: "openai",
+    label: "GPT-4o Mini",
+    envKey: "OPENAI_API_KEY",
+    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+    url: "https://api.openai.com/v1/chat/completions",
+    type: "openai",
+  },
+  xai: {
+    id: "xai",
+    label: "Grok (xAI)",
+    envKey: "XAI_API_KEY",
+    model: process.env.XAI_MODEL || "grok-3-mini",
+    url: "https://api.x.ai/v1/chat/completions",
+    type: "openai",
+  },
+  qwen: {
+    id: "qwen",
+    label: "Qwen Plus",
+    envKey: "DASHSCOPE_API_KEY",
+    model: process.env.QWEN_MODEL || "qwen-plus",
+    url: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions",
+    type: "openai",
+  },
+  mistral: {
+    id: "mistral",
+    label: "Mistral Small",
+    envKey: "MISTRAL_API_KEY",
+    model: process.env.MISTRAL_MODEL || "mistral-small-latest",
+    url: "https://api.mistral.ai/v1/chat/completions",
+    type: "openai",
+  },
+};
+
+export function getConfiguredProviders() {
+  return Object.values(PROVIDERS)
+    .map((p) => ({
+      id: p.id,
+      label: p.label,
+      model: p.model,
+      enabled: Boolean(process.env[p.envKey] || (p.altEnvKey && process.env[p.altEnvKey])),
+    }));
+}
+
+function getKeyFor(p) {
+  return process.env[p.envKey] || (p.altEnvKey ? process.env[p.altEnvKey] : "") || "";
+}
+
+function runGCalendar(args) {
+  return new Promise((resolve) => {
+    const bins = [
+      "gcalendar",
+      path.join(process.env.HOME || "", ".gemini/antigravity/bin/gcalendar"),
+    ];
+    const next = (i) => {
+      if (i >= bins.length) return resolve({ ok: false, error: "gcalendar CLI não encontrado" });
+      execFile(bins[i], args, { timeout: 15000 }, (err, stdout, stderr) => {
+        if (err) return next(i + 1);
+        resolve({ ok: true, stdout: stdout || "", stderr: stderr || "" });
+      });
+    };
+    next(0);
+  });
+}
+
+export function loadMemoryFacts(memoryPath) {
+  if (!fs.existsSync(memoryPath)) return [];
+  try { return JSON.parse(fs.readFileSync(memoryPath, "utf8")); } catch { return []; }
+}
+
+export function saveMemoryFact(memoryPath, { pillar = "Geral", fact }) {
+  const facts = loadMemoryFacts(memoryPath);
+  const entry = {
+    id: crypto.randomUUID(),
+    pillar,
+    fact: String(fact || "").trim(),
+    createdAt: new Date().toISOString(),
+  };
+  facts.unshift(entry);
+  fs.writeFileSync(memoryPath, JSON.stringify(facts.slice(0, 200), null, 2), "utf8");
+  return entry;
+}
+
+// Definição unificada das 7 ferramentas executivas
+const BASE_TOOLS = [
+  {
+    name: "get_calendar_events",
+    description: "Lista os eventos do Google Calendar do Bruno em uma data específica (YYYY-MM-DD) e verifica conflitos.",
+    parameters: {
+      type: "object",
+      properties: {
+        date: { type: "string", description: "Data no formato YYYY-MM-DD (ex: 2026-11-20)" },
+      },
+      required: ["date"],
+    },
+  },
+  {
+    name: "create_calendar_event",
+    description: "Cria um novo evento pessoal/compromisso no Google Calendar do Bruno (sem convidados externos). Sempre cheque get_calendar_events antes.",
+    parameters: {
+      type: "object",
+      properties: {
+        summary: { type: "string", description: "Título do evento" },
+        start: { type: "string", description: "Início em RFC3339 com offset -03:00 (ex: 2026-11-20T14:00:00-03:00)" },
+        end: { type: "string", description: "Fim em RFC3339 com offset -03:00 (ex: 2026-11-20T15:00:00-03:00)" },
+        description: { type: "string", description: "Descrição opcional do evento" },
+      },
+      required: ["summary", "start", "end"],
+    },
+  },
+  {
+    name: "list_kanban_tasks",
+    description: "Lista todas as tarefas abertas e concluídas do Kanban (GluN Capital, ProntoMed, CliniMind, Nossa Casa, Inbox).",
+    parameters: {
+      type: "object",
+      properties: {
+        pillar: { type: "string", description: "Filtro opcional por pilar (ex: GluN, ProntoMed, CliniMind)" },
+      },
+    },
+  },
+  {
+    name: "add_kanban_task",
+    description: "Adiciona uma nova tarefa ou ideia estruturada ao Kanban do Bruno.",
+    parameters: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Descrição clara e acionável da tarefa" },
+        pillar: { type: "string", description: "Pilar: GluN Capital, ProntoMed, CliniMind, Nossa Casa, Docência, Day Trade, Saúde/Hábitos, Financeiro PF ou Inbox de Ideias" },
+      },
+      required: ["title", "pillar"],
+    },
+  },
+  {
+    name: "complete_kanban_task",
+    description: "Marca uma tarefa do Kanban como concluída [x] buscando por código (ex: KAN-01, GLUN-01) ou trecho do título.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Código ou palavra-chave única da tarefa a concluir" },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "log_habit_or_trade",
+    description: "Registra o check-in diário de treino (Jiu-Jitsu ou Musculação), leitura (30 min) ou resultado de Day Trade no Habit Tracker de hoje.",
+    parameters: {
+      type: "object",
+      properties: {
+        workout_done: { type: "boolean", description: "true se concluiu o treino de hoje" },
+        reading_done: { type: "boolean", description: "true se concluiu os 30 min de leitura" },
+        day_trade_result: { type: "string", description: "Resultado do Day Trade (ex: '✅ R$ 520' ou '❌ -R$ 200')" },
+        notes: { type: "string", description: "Observação opcional do dia" },
+      },
+    },
+  },
+  {
+    name: "save_memory_fact",
+    description: "Salva um fato, decisão estratégica, preferência ou prazo importante na memória de longo prazo da Valkyrie.",
+    parameters: {
+      type: "object",
+      properties: {
+        pillar: { type: "string", description: "Pilar relacionado" },
+        fact: { type: "string", description: "Fato conciso para lembrar no futuro" },
+      },
+      required: ["pillar", "fact"],
+    },
+  },
+];
+
+function toGeminiSchema(schema) {
+  const out = { type: schema.type.toUpperCase() };
+  if (schema.description) out.description = schema.description;
+  if (schema.required) out.required = schema.required;
+  if (schema.properties) {
+    out.properties = {};
+    for (const [k, v] of Object.entries(schema.properties)) {
+      out.properties[k] = toGeminiSchema(v);
+    }
+  }
+  return out;
+}
+
+const GEMINI_TOOLS = [{
+  functionDeclarations: BASE_TOOLS.map((t) => ({
+    name: t.name,
+    description: t.description,
+    parameters: toGeminiSchema(t.parameters),
+  })),
+}];
+
+const OPENAI_TOOLS = BASE_TOOLS.map((t) => ({
+  type: "function",
+  function: {
+    name: t.name,
+    description: t.description,
+    parameters: t.parameters,
+  },
+}));
+
+function buildSystemInstruction({ agentsPrompt, memoryPath, todayStr, weekdayInfo }) {
+  const memories = loadMemoryFacts(memoryPath);
+  const holiday = getHolidayInfo(todayStr);
+  const marketStatus = holiday.isHoliday
+    ? `FERIADO NACIONAL (${holiday.name}) — B3 FECHADA! NÃO cobre Day Trade nem janela de mercado hoje.`
+    : holiday.isWeekend
+    ? "FIM DE SEMANA — B3 FECHADA! Não há pregão de Day Trade hoje."
+    : "Dia útil de pregão normal na B3 (janela inviolável de Day Trade: 09:00–11:00, meta R$ 500).";
+  const memoryBlock = memories.length
+    ? `\n\n[MEMÓRIA DE LONGO PRAZO DA VALKYRIE]\n` + memories.slice(0, 30).map((m) => `- [${m.pillar}] ${m.fact}`).join("\n")
+    : "";
+
+  return `${agentsPrompt}
+
+[CONTEXTO EM TEMPO REAL]
+- Data atual (America/Sao_Paulo): ${todayStr} (${weekdayInfo.dayName})
+- Status de Feriado / Mercado B3: ${marketStatus}
+- Treino programado para hoje: ${weekdayInfo.workout}
+- Você tem ferramentas (Function Calling) reais conectadas ao Google Calendar, Kanban, Habit Tracker e Memória do Bruno.
+- SEMPRE use as ferramentas quando o Bruno perguntar sobre agenda, pedir para agendar algo, concluir tarefas, registrar treino/leitura/trade ou pedir para lembrar de algo importante.
+- Responda de forma curta, executiva, acolhedora e natural em português do Brasil (ideal para leitura e voz).${memoryBlock}`;
+}
+
+function makeToolExecutor({ todayStr, memoryPath, helpers, executedTools }) {
+  return async function executeTool(name, args = {}) {
+    executedTools.push(name);
+    if (name === "get_calendar_events") {
+      return await helpers.fetchCalendarDate(args.date || todayStr);
+    }
+    if (name === "create_calendar_event") {
+      const cmdArgs = [
+        "mutate", "create",
+        "--summary", String(args.summary || "Compromisso"),
+        "--start", String(args.start || ""),
+        "--end", String(args.end || ""),
+        "--send-updates", "none",
+      ];
+      if (args.description) cmdArgs.push("--description", String(args.description));
+      const res = await runGCalendar(cmdArgs);
+      return res.ok ? { ok: true, output: res.stdout.trim() } : { ok: false, error: res.error };
+    }
+    if (name === "list_kanban_tasks") {
+      const all = helpers.parseKanban();
+      if (args.pillar) {
+        const q = String(args.pillar).toLowerCase();
+        return { sections: all.filter((s) => s.title.toLowerCase().includes(q)) };
+      }
+      return { sections: all };
+    }
+    if (name === "add_kanban_task") {
+      const pillar = helpers.addIdeaToKanban(args.title || "", args.pillar || null);
+      return { ok: true, pillar, title: args.title };
+    }
+    if (name === "complete_kanban_task") {
+      return helpers.completeKanbanByQuery(args.query || "");
+    }
+    if (name === "log_habit_or_trade") {
+      const patch = {};
+      if (typeof args.workout_done === "boolean") patch.workoutDone = args.workout_done;
+      if (typeof args.reading_done === "boolean") patch.readingDone = args.reading_done;
+      if (args.day_trade_result) patch.tradeText = args.day_trade_result;
+      if (args.notes) patch.notes = args.notes;
+      return { ok: true, habits: helpers.saveTodayHabits(patch) };
+    }
+    if (name === "save_memory_fact") {
+      return { ok: true, saved: saveMemoryFact(memoryPath, args) };
+    }
+    return { error: `Ferramenta desconhecida: ${name}` };
+  };
+}
+
+// ---------- Gemini Runner ----------
+async function runGeminiProvider(provider, apiKey, { systemInstruction, history, userText, executeTool }) {
+  const recent = (history || []).slice(-6).map((m) => ({
+    role: m.role === "user" ? "user" : "model",
+    parts: [{ text: m.text }],
+  }));
+  const contents = [...recent, { role: "user", parts: [{ text: userText }] }];
+
+  for (let step = 0; step < 5; step++) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(provider.model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(15000),
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemInstruction }] },
+          contents,
+          tools: GEMINI_TOOLS,
+          generationConfig: { temperature: 0.4, maxOutputTokens: 450 },
+        }),
+      }
+    );
+    if (!res.ok) throw new Error(`${provider.label} (${res.status}): ${(await res.text()).slice(0, 180)}`);
+    const data = await res.json();
+    const parts = data?.candidates?.[0]?.content?.parts || [];
+    const calls = parts.filter((p) => p.functionCall);
+    if (!calls.length) {
+      return parts.filter((p) => p.text).map((p) => p.text).join("\n").trim() || "Pronto, Bruno!";
+    }
+    contents.push({ role: "model", parts });
+    const responseParts = [];
+    for (const fc of calls) {
+      const result = await executeTool(fc.functionCall.name, fc.functionCall.args || {});
+      responseParts.push({ functionResponse: { name: fc.functionCall.name, response: { result } } });
+    }
+    contents.push({ role: "user", parts: responseParts });
+  }
+  return "Concluí as verificações solicitadas, Bruno.";
+}
+
+// ---------- OpenAI-Compatible Runner (OpenAI, Grok/xAI, Qwen/DashScope, Mistral) ----------
+async function runOpenAICompatibleProvider(provider, apiKey, { systemInstruction, history, userText, executeTool }) {
+  const recent = (history || []).slice(-6).map((m) => ({
+    role: m.role === "user" ? "user" : "assistant",
+    content: m.text,
+  }));
+  const messages = [
+    { role: "system", content: systemInstruction },
+    ...recent,
+    { role: "user", content: userText },
+  ];
+
+  for (let step = 0; step < 5; step++) {
+    const res = await fetch(provider.url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      signal: AbortSignal.timeout(15000),
+      body: JSON.stringify({
+        model: provider.model,
+        messages,
+        tools: OPENAI_TOOLS,
+        tool_choice: "auto",
+        temperature: 0.4,
+        max_tokens: 450,
+      }),
+    });
+    if (!res.ok) throw new Error(`${provider.label} (${res.status}): ${(await res.text()).slice(0, 180)}`);
+    const data = await res.json();
+    const msg = data?.choices?.[0]?.message;
+    if (!msg) throw new Error(`${provider.label}: resposta vazia`);
+
+    const toolCalls = msg.tool_calls || [];
+    if (!toolCalls.length) {
+      return (msg.content || "").trim() || "Pronto, Bruno!";
+    }
+
+    messages.push(msg);
+    for (const tc of toolCalls) {
+      let args = {};
+      try { args = JSON.parse(tc.function?.arguments || "{}"); } catch {}
+      const result = await executeTool(tc.function?.name, args);
+      messages.push({
+        role: "tool",
+        tool_call_id: tc.id,
+        content: JSON.stringify(result),
+      });
+    }
+  }
+  return "Concluí as verificações solicitadas, Bruno.";
+}
+
+// ---------- Main Entrypoint with Cost-Optimized Automatic Fallback ----------
+export async function runValkyrieAI({
+  preferredProvider = "auto",
+  userText,
+  history,
+  agentsPrompt,
+  memoryPath,
+  todayStr,
+  weekdayInfo,
+  helpers,
+}) {
+  // Ordem otimizada por menor custo + velocidade (Grok por último pois roteia p/ modelo flagship)
+  const defaultOrder = ["openai", "mistral", "qwen", "gemini", "xai"];
+  const order = preferredProvider && preferredProvider !== "auto" && PROVIDERS[preferredProvider]
+    ? [preferredProvider, ...defaultOrder.filter((id) => id !== preferredProvider)]
+    : defaultOrder;
+
+  const systemInstruction = buildSystemInstruction({ agentsPrompt, memoryPath, todayStr, weekdayInfo });
+  const errors = [];
+
+  for (const id of order) {
+    const provider = PROVIDERS[id];
+    const apiKey = getKeyFor(provider);
+    if (!apiKey) continue;
+
+    const executedTools = [];
+    const executeTool = makeToolExecutor({ todayStr, memoryPath, helpers, executedTools });
+
+    try {
+      const reply = provider.type === "gemini"
+        ? await runGeminiProvider(provider, apiKey, { systemInstruction, history, userText, executeTool })
+        : await runOpenAICompatibleProvider(provider, apiKey, { systemInstruction, history, userText, executeTool });
+
+      return {
+        reply,
+        executedTools,
+        providerUsed: provider.label,
+        providerId: provider.id,
+      };
+    } catch (err) {
+      console.error(`[Valkyrie Brain] Falha em ${provider.label}:`, err.message);
+      errors.push(`${provider.label}: ${err.message}`);
+    }
+  }
+
+  throw new Error(errors.join(" | ") || "Nenhuma chave de IA configurada");
+}

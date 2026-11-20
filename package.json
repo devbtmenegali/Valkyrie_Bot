@@ -1,0 +1,12 @@
+{
+  "name": "valkyrie-bot",
+  "version": "2.0.0",
+  "description": "Valkyrie — Secretária Executiva Pessoal, Multi-IA, PWA & Voz Neural",
+  "type": "module",
+  "scripts": {
+    "start": "node app/server.mjs"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
