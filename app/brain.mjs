@@ -237,6 +237,19 @@ const BASE_TOOLS = [
     parameters: { type: "object", properties: {} },
   },
   {
+    name: "send_whatsapp_now",
+    description: "ENVIA IMEDIATAMENTE uma mensagem real de WhatsApp via Evolution API quando o Bruno pedir explicitamente para mandar mensagem agora (para ele mesmo, para Val/Lucca/Caio, ou para um número informado). Se o Bruno pedir 'manda no meu WhatsApp', passe recipient_name='Bruno'.",
+    parameters: {
+      type: "object",
+      properties: {
+        recipient_name: { type: "string", description: "Nome do destinatário (ex: Bruno, Val, Lucca, Caio, Fornecedor X)" },
+        phone: { type: "string", description: "Telefone opcional com DDI+DDD (ex: 5548999999999). Se omitido, busca nos contatos ou usa o número do Bruno." },
+        message: { type: "string", description: "Texto exato da mensagem a enviar agora no WhatsApp" },
+      },
+      required: ["message"],
+    },
+  },
+  {
     name: "queue_whatsapp_outbound",
     description: "Prepara uma mensagem de WhatsApp para família (Val, Lucca, Caio), fornecedor da Nossa Casa ou cobrança de cliente e coloca na fila de aprovação da Triagem WhatsApp.",
     parameters: {
@@ -429,6 +442,9 @@ function makeToolExecutor({ todayStr, memoryPath, helpers, executedTools }) {
     }
     if (name === "get_finance_summary" && helpers.getFinanceSummary) {
       return await helpers.getFinanceSummary();
+    }
+    if (name === "send_whatsapp_now" && helpers.sendWhatsAppNow) {
+      return await helpers.sendWhatsAppNow(args);
     }
     if (name === "queue_whatsapp_outbound" && helpers.queueOutboundMessage) {
       return { ok: true, queued: await helpers.queueOutboundMessage(args) };

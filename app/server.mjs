@@ -417,8 +417,8 @@ function isObviousNoise(text) {
 }
 
 async function ingestWhatsAppMessage({ senderName, senderPhone, text, simulated = false, isGroup = false }) {
-  // Pré-filtro gratuito: descarta ruído óbvio (ok, kkk, emojis, bom dia) sem gastar 1 token de IA
-  if (!simulated && isObviousNoise(text)) {
+  // Pré-filtro gratuito: descarta ruído óbvio em grupos ou risadas/emojis sem gastar tokens
+  if (!simulated && isGroup && isObviousNoise(text)) {
     return null;
   }
   const fallbackPillar = detectPillar(text);
@@ -627,6 +627,35 @@ async function generateValkyrieReply(userText, providerOverride = null) {
           getUpcomingBirthdays: (days) => getUpcomingBirthdays(__dirname, days),
           addFinanceEntry: (args) => addFinanceEntry(__dirname, args),
           getFinanceSummary: () => getFinanceSummary(__dirname),
+          sendWhatsAppNow: async ({ recipient_name = "", phone = "", message = "" }) => {
+            let targetPhone = String(phone || "").replace(/\D/g, "");
+            let targetLabel = recipient_name || targetPhone;
+            if (!targetPhone) {
+              const lowerName = String(recipient_name || "").toLowerCase();
+              if (!lowerName || lowerName.includes("bruno") || lowerName.includes("meu") || lowerName.includes("mim")) {
+                targetPhone = String(process.env.BRUNO_WHATSAPP_NUMBER || "").replace(/\D/g, "");
+                targetLabel = "Bruno";
+              } else {
+                const contacts = await listContacts(__dirname);
+                const found = contacts.find((c) => c.name.toLowerCase().includes(lowerName));
+                if (found?.phone) {
+                  targetPhone = found.phone.replace(/\D/g, "");
+                  targetLabel = found.name;
+                }
+              }
+            }
+            if (!targetPhone) {
+              return { ok: false, sent: false, error: `Não encontrei o número de WhatsApp de "${recipient_name}". Peça ao Bruno o número com DDD ou cadastre na aba Contatos.` };
+            }
+            try {
+              await sendWhatsAppMessage(message, targetPhone);
+              console.log(`[WhatsApp Enviado] para=${targetLabel} (${targetPhone})`);
+              return { ok: true, sent: true, to: targetLabel, phone: targetPhone, message };
+            } catch (err) {
+              console.error("[WhatsApp Erro Envio]", err.message);
+              return { ok: false, sent: false, error: err.message };
+            }
+          },
           queueOutboundMessage: async ({ recipient_name, message, pillar = "Envio Proativo" }) => {
             const contacts = await listContacts(__dirname);
             const found = contacts.find((c) => c.name.toLowerCase() === String(recipient_name || "").toLowerCase());
