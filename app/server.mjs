@@ -492,25 +492,27 @@ async function generateValkyrieReply(userText, providerOverride = null) {
   const habits = getTodayHabits();
   const kanban = parseKanban();
 
-  if (lower === "/treino" || /(fiz|conclu[ií]|pago|feito|marcar).*(jiu|muscula|treino)/.test(lower)) {
+  // Somente comandos explícitos com barra (/) usam atalho instantâneo;
+  // qualquer frase natural vai direto para o Cérebro Multi-IA para resposta 100% humana e inteligente!
+  if (lower === "/treino") {
     saveTodayHabits({ workoutDone: true });
-    return `✅ **Treino registrado!** ${info.workoutShort} marcado como concluído. Disciplina em dia, Bruno.`;
+    return `Boa, Bruno! Já deixei seu ${info.workoutShort} marcado como pago hoje. Disciplina em dia.`;
   }
 
-  if (lower === "/leitura" || /(fiz|conclu[ií]|terminei|li|marcar).*(leitura|30\s*min)/.test(lower)) {
+  if (lower === "/leitura") {
     saveTodayHabits({ readingDone: true });
-    return `✅ **Leitura registrada!** Bloco de 30 minutos marcado como concluído.`;
+    return `Feito! Seus 30 minutos de leitura de hoje já estão registrados.`;
   }
 
-  const tradeMatch = userText.match(/(?:\/trade|trade|day\s*trade|bati\s+a\s+meta|meta\s+batida|fechei)\s*[:=]?\s*([+-]?\s*r?\$?\s*\d[\d.,]*)/i);
-  if (tradeMatch || /bati a meta/.test(lower)) {
+  if (lower.startsWith("/trade")) {
+    const tradeMatch = userText.match(/\/trade\s*[:=]?\s*([+-]?\s*r?\$?\s*\d[\d.,]*)/i);
     const val = tradeMatch ? tradeMatch[1].replace(/\s+/g, "") : "R$ 500";
     const formatted = val.includes("R$") ? `✅ ${val}` : `✅ R$ ${val}`;
     saveTodayHabits({ tradeText: formatted });
-    return `📈 **Day Trade atualizado!** Registrado **${formatted}**. Excelente disciplina, proteja o resultado.`;
+    return `Anotado, Bruno! Day Trade de hoje registrado em **${formatted}**. Protege esse resultado.`;
   }
 
-  if (lower === "/briefing" || /\bbriefing\b|\bresumo do dia\b|\bbom dia\b/.test(lower)) {
+  if (lower === "/briefing") {
     const cal = await fetchCalendarDate(todayStr);
     const conflicts = detectConflicts(cal.events);
     const pendingWa = loadInbox().filter((i) => i.status === "pending").length;
@@ -543,12 +545,11 @@ async function generateValkyrieReply(userText, providerOverride = null) {
     ].join("\n");
   }
 
-  if (lower === "/agenda" || /\bagenda\b|\bcompromissos\b|\baulas?\b|\bamanh[ãa]\b/.test(lower)) {
-    const isTomorrow = /amanh[ãa]/.test(lower);
-    const targetDate = isTomorrow ? tomorrowStr : todayStr;
+  if (lower === "/agenda") {
+    const targetDate = todayStr;
     const cal = await fetchCalendarDate(targetDate);
     const conflicts = detectConflicts(cal.events);
-    const header = isTomorrow ? `🗓️ **Agenda de Amanhã (${targetDate.split("-").reverse().join("/")})**` : `📅 **Agenda de Hoje (${targetDate.split("-").reverse().join("/")})**`;
+    const header = `📅 **Agenda de Hoje (${targetDate.split("-").reverse().join("/")})**`;
     if (!cal.ok) return `${header}\n⚠️ Não consegui consultar o Google Calendar agora (${cal.error}).`;
     if (!cal.events.length) return `${header}\n• Dia livre no Google Calendar.`;
     const lines = cal.events.map((e) => `• **${formatTime(e.start)}–${formatTime(e.end)}** | ${e.summary}`);
@@ -556,7 +557,7 @@ async function generateValkyrieReply(userText, providerOverride = null) {
     return `${header}\n${lines.join("\n")}`;
   }
 
-  if (lower === "/kanban" || /\bprioridades\b|\bkanban\b|\bpend[êe]ncias\b/.test(lower)) {
+  if (lower === "/kanban") {
     const open = kanban
       .map((s) => {
         const items = s.items.filter((i) => i.status !== "x").slice(0, 3);
