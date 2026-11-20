@@ -82,10 +82,39 @@ function isAuthorized(req) {
   return cookie.includes(`valkyrie_session=${SESSION_TOKEN}`);
 }
 
-function generateTtsBuffer(text, voiceOverride = null) {
+async function generateOpenAiTtsBuffer(cleaned) {
+  const key = process.env.OPENAI_API_KEY || "";
+  if (!key) return null;
+  try {
+    const res = await fetch("https://api.openai.com/v1/audio/speech", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(8000),
+      body: JSON.stringify({
+        model: "tts-1",
+        voice: "nova",
+        input: cleaned.slice(0, 700),
+        speed: 1.08,
+        response_format: "mp3",
+      }),
+    });
+    if (!res.ok) return null;
+    return Buffer.from(await res.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+async function generateTtsBuffer(text, voiceOverride = null) {
+  const cleaned = cleanTextForSpeech(text);
+  if (!cleaned) throw new Error("Texto vazio");
+
+  // 1. Ultra-rápido (~0.8s): OpenAI TTS voz 'nova' (natural, humana e multilíngue PT/EN/ES)
+  const fastBuf = await generateOpenAiTtsBuffer(cleaned);
+  if (fastBuf && fastBuf.length > 500) return fastBuf;
+
+  // 2. Fallback: edge-tts neural
   return new Promise((resolve, reject) => {
-    const cleaned = cleanTextForSpeech(text);
-    if (!cleaned) return reject(new Error("Texto vazio"));
     const tmpFile = `/tmp/valkyrie-tts-${crypto.randomUUID()}.mp3`;
     const voice = voiceOverride || NEURAL_VOICE;
     const proc = spawn(
@@ -158,42 +187,27 @@ function speakMac(text, voiceOverride = null) {
   stopMacSpeech();
   const seq = ++speechSeq;
 
-  if (!fs.existsSync(EDGE_TTS_BIN)) {
-    return speakFallbackSay(cleaned, seq);
-  }
-
   const outFile = `/tmp/valkyrie-speech-${seq}.mp3`;
   broadcastEvent("speaking", { speaking: true });
 
-  const gen = spawn(
-    EDGE_TTS_BIN,
-    ["--voice", voiceOverride || NEURAL_VOICE, "--rate=+5%", "--text", cleaned, "--write-media", outFile],
-    { stdio: "ignore" }
-  );
-  activeAudioProc = gen;
-
-  gen.on("error", () => speakFallbackSay(cleaned, seq));
-  gen.on("exit", (code) => {
-    if (seq !== speechSeq) {
-      try { fs.unlinkSync(outFile); } catch {}
-      return;
-    }
-    if (code !== 0 || !fs.existsSync(outFile)) {
-      return speakFallbackSay(cleaned, seq);
-    }
-    const player = spawn("afplay", [outFile], { stdio: "ignore" });
-    activeAudioProc = player;
-    player.on("exit", () => {
-      try { fs.unlinkSync(outFile); } catch {}
-      if (activeAudioProc === player) activeAudioProc = null;
-      if (seq === speechSeq) broadcastEvent("speaking", { speaking: false });
-    });
-    player.on("error", () => {
-      try { fs.unlinkSync(outFile); } catch {}
-      if (activeAudioProc === player) activeAudioProc = null;
-      if (seq === speechSeq) broadcastEvent("speaking", { speaking: false });
-    });
-  });
+  generateTtsBuffer(cleaned, voiceOverride)
+    .then((buf) => {
+      if (seq !== speechSeq) return;
+      fs.writeFileSync(outFile, buf);
+      const player = spawn("afplay", [outFile], { stdio: "ignore" });
+      activeAudioProc = player;
+      player.on("exit", () => {
+        try { fs.unlinkSync(outFile); } catch {}
+        if (activeAudioProc === player) activeAudioProc = null;
+        if (seq === speechSeq) broadcastEvent("speaking", { speaking: false });
+      });
+      player.on("error", () => {
+        try { fs.unlinkSync(outFile); } catch {}
+        if (activeAudioProc === player) activeAudioProc = null;
+        if (seq === speechSeq) broadcastEvent("speaking", { speaking: false });
+      });
+    })
+    .catch(() => speakFallbackSay(cleaned, seq));
 }
 
 // ---------- Real-time SSE Clients ----------
@@ -370,7 +384,7 @@ async function getAllInbox() {
 }
 
 async function getPendingWhatsApp(senderFilter = "") {
-  const list = await getAllInbox();
+  const list = (await getAllInbox()).filter((i) => !i.simulated);
   const q = String(senderFilter || "").trim().toLowerCase();
   if (q) {
     // Quando Bruno pergunta por alguém específico (ex: "Val"), retorna TODAS as últimas mensagens dessa pessoa
