@@ -650,6 +650,27 @@ async function generateValkyrieReply(userText, providerOverride = null) {
             try {
               await sendWhatsAppMessage(message, targetPhone);
               console.log(`[WhatsApp Enviado] para=${targetLabel} (${targetPhone})`);
+              const sentItem = {
+                id: crypto.randomUUID(),
+                senderName: `📤 Enviado para: ${targetLabel}`,
+                senderPhone: targetPhone,
+                text: `[Enviado pela Valkyrie via comando de voz/chat]`,
+                pillar: "Envio Direto",
+                priority: "media",
+                draftReply: message,
+                sentReply: message,
+                deliveryNote: "Enviado via WhatsApp (Evolution API)",
+                status: "sent",
+                simulated: false,
+                time: nowTimeStr(),
+                sentAt: nowTimeStr(),
+                createdAt: new Date().toISOString(),
+              };
+              const inbox = await getAllInbox();
+              inbox.unshift(sentItem);
+              saveInbox(inbox);
+              sbInsertInbox(sentItem).catch(() => {});
+              broadcastEvent("inbox_update", { item: sentItem });
               return { ok: true, sent: true, to: targetLabel, phone: targetPhone, message };
             } catch (err) {
               console.error("[WhatsApp Erro Envio]", err.message);
@@ -672,9 +693,10 @@ async function generateValkyrieReply(userText, providerOverride = null) {
               time: nowTimeStr(),
               createdAt: new Date().toISOString(),
             };
-            const inbox = loadInbox();
+            const inbox = await getAllInbox();
             inbox.unshift(item);
             saveInbox(inbox);
+            sbInsertInbox(item).catch(() => {});
             broadcastEvent("inbox_update", { item });
             const connected = Boolean(process.env.EVOLUTION_API_URL && process.env.EVOLUTION_API_KEY);
             return {
@@ -928,9 +950,10 @@ const server = http.createServer(async (req, res) => {
       time: nowTimeStr(),
       createdAt: new Date().toISOString(),
     };
-    const inbox = loadInbox();
+    const inbox = await getAllInbox();
     inbox.unshift(item);
     saveInbox(inbox);
+    sbInsertInbox(item).catch(() => {});
     broadcastEvent("inbox_update", { item });
     return sendJson(res, 200, { ok: true, inbox });
   }
@@ -966,9 +989,10 @@ const server = http.createServer(async (req, res) => {
       time: nowTimeStr(),
       createdAt: new Date().toISOString(),
     };
-    const inbox = loadInbox();
+    const inbox = await getAllInbox();
     inbox.unshift(item);
     saveInbox(inbox);
+    sbInsertInbox(item).catch(() => {});
     broadcastEvent("inbox_update", { item });
     return sendJson(res, 200, { ok: true, inbox });
   }
