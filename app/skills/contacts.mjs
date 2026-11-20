@@ -135,3 +135,51 @@ export async function getUpcomingBirthdays(appDir, daysAhead = 15) {
 export function buildSupplierMessage(contact, subject) {
   return `Olá ${contact.name}, tudo bem? Aqui é a Valkyrie, assistente executiva do Bruno da loja Nossa Casa. ${subject} Pode me confirmar por aqui? Obrigada!`;
 }
+
+// ---------- Busca ao vivo nos contatos reais do WhatsApp via Evolution API ----------
+let evoContactsCache = { at: 0, list: [] };
+
+export async function searchEvolutionContacts(query) {
+  const baseUrl = (process.env.EVOLUTION_API_URL || "").replace(/\/+$/, "");
+  const apiKey = process.env.EVOLUTION_API_KEY || "";
+  const instance = process.env.EVOLUTION_INSTANCE || "";
+  if (!baseUrl || !apiKey || !instance) return [];
+
+  const now = Date.now();
+  if (!evoContactsCache.list.length || now - evoContactsCache.at > 5 * 60 * 1000) {
+    try {
+      const res = await fetch(`${baseUrl}/chat/findContacts/${encodeURIComponent(instance)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: apiKey },
+        signal: AbortSignal.timeout(10000),
+        body: JSON.stringify({}),
+      });
+      if (res.ok) {
+        const raw = await res.json();
+        if (Array.isArray(raw)) {
+          evoContactsCache = {
+            at: now,
+            list: raw
+              .filter((c) => typeof c.remoteJid === "string" && c.remoteJid.endsWith("@s.whatsapp.net"))
+              .map((c) => ({
+                name: String(c.pushName || c.name || "").trim(),
+                phone: c.remoteJid.replace(/\D/g, ""),
+              }))
+              .filter((c) => c.name && c.phone),
+          };
+        }
+      }
+    } catch {}
+  }
+
+  const q = String(query || "").trim().toLowerCase();
+  if (!q) return [];
+
+  const exact = evoContactsCache.list.filter((c) => c.name.toLowerCase() === q);
+  if (exact.length) return exact;
+
+  const starts = evoContactsCache.list.filter((c) => c.name.toLowerCase().startsWith(q + " ") || c.name.toLowerCase().startsWith(q));
+  if (starts.length) return starts.slice(0, 6);
+
+  return evoContactsCache.list.filter((c) => c.name.toLowerCase().includes(q)).slice(0, 6);
+}

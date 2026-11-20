@@ -13,7 +13,7 @@ import { sendWhatsAppMessage } from "../whatsapp/send.mjs";
 import { runValkyrieAI, runSimplePromptAI, getConfiguredProviders, loadMemoryFacts, saveMemoryFact } from "./brain.mjs";
 import { getHolidayInfo } from "./holidays.mjs";
 import { fetchCalendarEvents } from "./calendar.mjs";
-import { listContacts, upsertContact, getUpcomingBirthdays, buildSupplierMessage } from "./skills/contacts.mjs";
+import { listContacts, upsertContact, getUpcomingBirthdays, buildSupplierMessage, searchEvolutionContacts } from "./skills/contacts.mjs";
 import { listFinance, addFinanceEntry, markFinancePaid, getFinanceSummary, buildCollectionMessage } from "./skills/finance.mjs";
 import { LANGUAGE_VOICES, getLanguageCoachPrompt, listLanguageSessions, logLanguageSession } from "./skills/languages.mjs";
 import { fetchLiveNews, loadCachedRadar, saveCachedRadar, buildRadarPrompt } from "./skills/radar.mjs";
@@ -637,10 +637,25 @@ async function generateValkyrieReply(userText, providerOverride = null) {
                 targetLabel = "Bruno";
               } else {
                 const contacts = await listContacts(__dirname);
-                const found = contacts.find((c) => c.name.toLowerCase().includes(lowerName));
+                const found = contacts.find((c) => c.name.toLowerCase().includes(lowerName) && c.phone);
                 if (found?.phone) {
                   targetPhone = found.phone.replace(/\D/g, "");
                   targetLabel = found.name;
+                } else {
+                  // Busca automática nos ~3.900 contatos reais do WhatsApp (Evolution API)
+                  const evoMatches = await searchEvolutionContacts(recipient_name);
+                  if (evoMatches.length === 1 || (evoMatches.length > 1 && evoMatches[0].name.toLowerCase() === lowerName)) {
+                    targetPhone = evoMatches[0].phone;
+                    targetLabel = evoMatches[0].name;
+                  } else if (evoMatches.length > 1) {
+                    return {
+                      ok: false,
+                      sent: false,
+                      ambiguous: true,
+                      candidates: evoMatches.slice(0, 5),
+                      error: `Encontrei mais de um contato parecido com "${recipient_name}" no WhatsApp. Pergunte ao Bruno qual deles ele quer: ${evoMatches.slice(0, 5).map((m) => `${m.name} (${m.phone})`).join(", ")}`,
+                    };
+                  }
                 }
               }
             }
@@ -671,6 +686,50 @@ async function generateValkyrieReply(userText, providerOverride = null) {
               saveInbox(inbox);
               sbInsertInbox(sentItem).catch(() => {});
               broadcastEvent("inbox_update", { item: sentItem });
+              return { ok: true, sent: true, to: targetLabel, phone: targetPhone, message };
+            } catch (err) {
+              console.error("[WhatsApp Erro Envio]", err.message);
+              return { ok: false, sent: false, error: err.message };
+            }
+          },
+          sendWhatsAppNow: async ({ recipient_name = "", phone = "", message = "" }) => {
+            let targetPhone = String(phone || "").replace(/\D/g, "");
+            let targetLabel = recipient_name || targetPhone;
+            if (!targetPhone) {
+              const lowerName = String(recipient_name || "").toLowerCase();
+              if (!lowerName || lowerName.includes("bruno") || lowerName.includes("meu") || lowerName.includes("mim")) {
+                targetPhone = String(process.env.BRUNO_WHATSAPP_NUMBER || "").replace(/\D/g, "");
+                targetLabel = "Bruno";
+              } else {
+                const contacts = await listContacts(__dirname);
+                const found = contacts.find((c) => c.name.toLowerCase().includes(lowerName) && c.phone);
+                if (found?.phone) {
+                  targetPhone = found.phone.replace(/\D/g, "");
+                  targetLabel = found.name;
+                } else {
+                  // Busca automática nos ~3.900 contatos reais do WhatsApp (Evolution API)
+                  const evoMatches = await searchEvolutionContacts(recipient_name);
+                  if (evoMatches.length === 1 || (evoMatches.length > 1 && evoMatches[0].name.toLowerCase() === lowerName)) {
+                    targetPhone = evoMatches[0].phone;
+                    targetLabel = evoMatches[0].name;
+                  } else if (evoMatches.length > 1) {
+                    return {
+                      ok: false,
+                      sent: false,
+                      ambiguous: true,
+                      candidates: evoMatches.slice(0, 5),
+                      error: `Encontrei mais de um contato parecido com "${recipient_name}" no WhatsApp. Pergunte ao Bruno qual deles ele quer: ${evoMatches.slice(0, 5).map((m) => `${m.name} (${m.phone})`).join(", ")}`,
+                    };
+                  }
+                }
+              }
+            }
+            if (!targetPhone) {
+              return { ok: false, sent: false, error: `Não encontrei o número de WhatsApp de "${recipient_name}". Peça ao Bruno o número com DDD ou cadastre na aba Contatos.` };
+            }
+            try {
+              await sendWhatsAppMessage(message, targetPhone);
+              console.log(`[WhatsApp Enviado] para=${targetLabel} (${targetPhone})`);
               return { ok: true, sent: true, to: targetLabel, phone: targetPhone, message };
             } catch (err) {
               console.error("[WhatsApp Erro Envio]", err.message);
