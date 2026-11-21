@@ -888,7 +888,12 @@ async function generateOrGetRadar(forceRefresh = false) {
   let briefing = "Não foi possível gerar a síntese agora, mas as manchetes ao vivo estão listadas abaixo.";
   let providerUsed = "";
   try {
-    const ai = await runSimplePromptAI({ preferredProvider, systemPrompt: prompt.system, userText: prompt.user });
+    const ai = await runSimplePromptAI({
+      preferredProvider: preferredProvider === "auto" ? "xai" : preferredProvider,
+      systemPrompt: prompt.system,
+      userText: prompt.user,
+      maxTokens: 2500,
+    });
     briefing = ai.reply;
     providerUsed = ai.providerUsed;
   } catch {}

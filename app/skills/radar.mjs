@@ -1,5 +1,5 @@
 /**
- * Skill: Radar Estratégico — Notícias ao Vivo (RSS), Oportunidades de Investimento & Negócios + Aprendizado Contínuo
+ * Skill: Radar Estratégico — Google Trends, Notícias ao Vivo, Grok AI & Oportunidades de SaaS/Negócios
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -9,6 +9,9 @@ const FEEDS = {
   imoveis_ma: "https://news.google.com/rss/search?q=(leilao+imoveis+OR+holding+patrimonial+OR+mercado+imobiliario+Brasil)+when:3d&hl=pt-BR&gl=BR&ceid=BR:pt-419",
   healthtech: "https://news.google.com/rss/search?q=(healthtech+OR+inteligencia+artificial+saude+OR+telemedicina+Brasil)+when:4d&hl=pt-BR&gl=BR&ceid=BR:pt-419",
   varejo: "https://news.google.com/rss/search?q=(varejo+Brasil+OR+gestao+loja+OR+e-commerce+tendencias)+when:4d&hl=pt-BR&gl=BR&ceid=BR:pt-419",
+  saas_tech: "https://news.google.com/rss/search?q=(SaaS+OR+micro-saas+OR+AI+agents+OR+automação+negócios)+when:3d&hl=pt-BR&gl=BR&ceid=BR:pt-419",
+  trends_br: "https://trends.google.com/trending/rss?geo=BR",
+  trends_us: "https://trends.google.com/trending/rss?geo=US",
 };
 
 function decodeXml(str) {
@@ -22,7 +25,7 @@ function decodeXml(str) {
     .trim();
 }
 
-function parseRssItems(xml, max = 4) {
+function parseRssItems(xml, max = 4, isTrends = false) {
   const items = [];
   const matches = xml.match(/<item>[\s\S]*?<\/item>/g) || [];
   for (const block of matches.slice(0, max)) {
@@ -30,7 +33,16 @@ function parseRssItems(xml, max = 4) {
     const link = decodeXml((block.match(/<link>([\s\S]*?)<\/link>/) || [])[1] || "");
     const pubDate = decodeXml((block.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1] || "");
     const source = decodeXml((block.match(/<source[^>]*>([\s\S]*?)<\/source>/) || [])[1] || "");
-    if (title) items.push({ title, link, pubDate, source });
+    const traffic = decodeXml((block.match(/<ht:approx_traffic>([\s\S]*?)<\/ht:approx_traffic>/) || [])[1] || "");
+    const newsTitle = decodeXml((block.match(/<ht:news_item_title>([\s\S]*?)<\/ht:news_item_title>/) || [])[1] || "");
+    if (title) {
+      items.push({
+        title,
+        link,
+        pubDate,
+        source: traffic ? `Google Trends (${traffic} buscas) • ${newsTitle || source}` : (source || "Notícia"),
+      });
+    }
   }
   return items;
 }
@@ -41,11 +53,12 @@ export async function fetchLiveNews() {
       try {
         const res = await fetch(url, {
           signal: AbortSignal.timeout(8000),
-          headers: { "User-Agent": "Valkyrie-Executive-Radar/1.0" },
+          headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Kyrie-Radar/2.0" },
         });
         if (!res.ok) return [topic, []];
         const xml = await res.text();
-        return [topic, parseRssItems(xml, 3)];
+        const isTrends = topic.startsWith("trends_");
+        return [topic, parseRssItems(xml, isTrends ? 5 : 3, isTrends)];
       } catch {
         return [topic, []];
       }
@@ -67,8 +80,9 @@ export function saveCachedRadar(appDir, data) {
 export function buildRadarPrompt(news, memories) {
   const newsText = Object.entries(news)
     .map(([topic, list]) => {
-      const lines = (list || []).map((n) => `- ${n.title} (${n.source || "Notícia"})`).join("\n");
-      return `### ${topic.toUpperCase()}\n${lines || "- Sem manchetes recentes"}`;
+      const label = topic.toUpperCase().replace("_", " ");
+      const lines = (list || []).map((n) => `- ${n.title} (${n.source || "Fonte"})`).join("\n");
+      return `### ${label}\n${lines || "- Sem dados recentes"}`;
     })
     .join("\n\n");
 
@@ -78,17 +92,34 @@ export function buildRadarPrompt(news, memories) {
     .join("\n");
 
   return {
-    system: `Você é a Valkyrie, Chief of Staff e Conselheira Estratégica de Bruno Menegali.
-Perfil do Bruno: CEO da GluN Capital S.A. (Holding, leilões de imóveis, M&A), fundador de SaaS de saúde (ProntoMed e CliniMind), dono da loja de varejo Nossa Casa, professor universitário (UNISUL/UNIBAVE), trader de curto prazo (B3) e investidor de longo prazo.
+    system: `Você é o Grok integrado à Kyrie, Chief of Staff e Conselheira Estratégica de Inovação de Bruno Menegali.
+Perfil do Bruno:
+- Fundador de SaaS de Saúde (ProntoMed e CliniMind)
+- CEO da GluN Capital S.A. (Holding, leilões de imóveis com deságio, M&A)
+- Dono da loja física de varejo Nossa Casa
+- Professor universitário (UNISUL/UNIBAVE)
+- Trader B3 de curto prazo e investidor de longo prazo.
 
-Com base nas manchetes REAIS de hoje e nas preferências aprendidas do Bruno, produza um **Radar Estratégico Executivo** curto, direto e acionável em português com EXATAMENTE estas 4 seções:
-1. 📰 **Termômetro & Notícias-Chave (Top 3):** o que realmente impacta mercado, negócios ou saúde hoje.
-2. 📈 **Radar de Investimentos & Oportunidades:** 2 pontos de atenção para longo prazo (ações, FIIs, juros/renda fixa, imóveis/leilões) — sempre com visão prudente de risco.
-3. 💡 **Ideia de Negócio / Melhor Prática do Dia:** 1 ideia concreta e aplicável hoje na GluN Capital, ProntoMed, CliniMind ou Nossa Casa.
-4. 🎯 **Orientação da Valkyrie:** 1 conselho curto de alta performance/governança baseado no momento dele.
+Com base nos dados em tempo real (notícias e GOOGLE TRENDS / tendências de busca no Brasil e EUA) e no perfil de empreendedor/investidor do Bruno, gere um **Radar Estratégico Executivo** de altíssimo valor.
 
-Seja objetiva, sem enrolação (máx. 260 palavras).`,
-    user: `MANCHETES REAIS DE HOJE:\n${newsText}\n\nPREFERÊNCIAS E MEMÓRIA APRENDIDA DO BRUNO:\n${prefBlock || "- Ainda aprendendo preferências iniciais."}`,
+Estrutura OBRIGATÓRIA (desenvolva completamente CADA seção, NUNCA corte no meio):
+
+1. 📰 **Termômetro & Notícias-Chave (Top 3):**
+   - Os 3 fatos macroeconômicos, de mercado ou saúde com maior impacto no bolso e nas empresas hoje.
+
+2. 📈 **Radar de Investimentos & Oportunidades:**
+   - 2 oportunidades concretas (ações, FIIs, leilões de imóveis da Caixa/judiciais, taxa de juros) com visão prudente de risco e retorno.
+
+3. 🚀 **Tendências de Busca (Google Trends) & Oportunidades de SaaS / Novos Negócios:**
+   - Analise o que as pessoas estão buscando intensamente no Google Trends (BR e US) e cruze com a capacidade de execução do Bruno.
+   - Proponha **1 ideia concreta de Micro-SaaS, produto de IA ou automação de alto valor** voltada para Clínicas Médicas (CliniMind/ProntoMed), Leilões de Imóveis (GluN) ou Varejo (Nossa Casa).
+   - Diga qual é a dor do mercado, como o SaaS resolve e como monetizar rápido (ex: assinatura mensal R$ 197 a R$ 497).
+
+4. 🎯 **Orientação da Kyrie:**
+   - 1 conselho direto e cirúrgico de governança ou foco para o dia de hoje.
+
+Mantenha cada ponto conciso, direto e executivo (total de ~500 a 600 palavras), garantindo que todas as 4 seções sejam desenvolvidas integralmente e concluídas com a assinatura:
+\n\n— **Kyrie (com inteligência Grok & Google Trends)**`,
+    user: `DADOS EM TEMPO REAL (NOTÍCIAS + GOOGLE TRENDS BR/US + SAAS/IA):\n${newsText}\n\nPREFERÊNCIAS E MEMÓRIA DE BRUNO:\n${prefBlock || "- Criador de soluções escaláveis e investidor focado em fluxo de caixa e equity."}`,
   };
 }
-

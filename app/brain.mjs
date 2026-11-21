@@ -5,10 +5,25 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { fileURLToPath } from "node:url";
 import { execFile } from "node:child_process";
 import { getHolidayInfo } from "./holidays.mjs";
 import { sbSaveMemory } from "./db.mjs";
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "./calendar.mjs";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const envPath = path.join(__dirname, ".env");
+if (fs.existsSync(envPath)) {
+  for (const rawLine of fs.readFileSync(envPath, "utf8").split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const eq = line.indexOf("=");
+    if (eq === -1) continue;
+    const k = line.slice(0, eq).trim();
+    const v = line.slice(eq + 1).trim().replace(/^['"]|['"]$/g, "");
+    if (!process.env[k]) process.env[k] = v;
+  }
+}
 
 const PROVIDERS = {
   gemini: {
@@ -31,7 +46,7 @@ const PROVIDERS = {
     id: "xai",
     label: "Grok (xAI)",
     envKey: "XAI_API_KEY",
-    model: process.env.XAI_MODEL || "grok-3-mini",
+    model: process.env.XAI_MODEL || "grok-4.20-0309-non-reasoning",
     url: "https://api.x.ai/v1/chat/completions",
     type: "openai",
   },
@@ -648,8 +663,8 @@ export async function runValkyrieAI({
 }
 
 // ---------- Language Coach Runner (Modo Carro: Inglês / Espanhol) ----------
-export async function runSimplePromptAI({ preferredProvider = "auto", systemPrompt, userText }) {
-  const defaultOrder = ["openai", "mistral", "qwen", "gemini", "xai"];
+export async function runSimplePromptAI({ preferredProvider = "auto", systemPrompt, userText, maxTokens = 1000 }) {
+  const defaultOrder = ["xai", "openai", "gemini", "mistral", "qwen"];
   const order = preferredProvider && preferredProvider !== "auto" && PROVIDERS[preferredProvider]
     ? [preferredProvider, ...defaultOrder.filter((id) => id !== preferredProvider)]
     : defaultOrder;
@@ -665,11 +680,11 @@ export async function runSimplePromptAI({ preferredProvider = "auto", systemProm
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            signal: AbortSignal.timeout(15000),
+            signal: AbortSignal.timeout(18000),
             body: JSON.stringify({
               system_instruction: { parts: [{ text: systemPrompt }] },
               contents: [{ role: "user", parts: [{ text: userText }] }],
-              generationConfig: { temperature: 0.5, maxOutputTokens: 220 },
+              generationConfig: { temperature: 0.6, maxOutputTokens: maxTokens },
             }),
           }
         );
@@ -681,15 +696,15 @@ export async function runSimplePromptAI({ preferredProvider = "auto", systemProm
         const res = await fetch(provider.url, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-          signal: AbortSignal.timeout(15000),
+          signal: AbortSignal.timeout(18000),
           body: JSON.stringify({
             model: provider.model,
             messages: [
               { role: "system", content: systemPrompt },
               { role: "user", content: userText },
             ],
-            temperature: 0.5,
-            max_tokens: 220,
+            temperature: 0.6,
+            max_tokens: maxTokens,
           }),
         });
         if (!res.ok) continue;
