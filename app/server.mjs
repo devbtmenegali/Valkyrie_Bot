@@ -17,7 +17,7 @@ import { fetchPreMarketData, fetchEconomicCalendar } from "./market.mjs";
 import { listContacts, upsertContact, getUpcomingBirthdays, buildSupplierMessage, searchEvolutionContacts } from "./skills/contacts.mjs";
 import { listFinance, addFinanceEntry, updateFinanceEntry, deleteFinanceEntry, markFinancePaid, getFinanceSummary, buildCollectionMessage } from "./skills/finance.mjs";
 import { listLibraryBooks, addLibraryBook, buildWealthSystemPrompt } from "./skills/wealth.mjs";
-import { processIncomingFile } from "./files.mjs";
+import { processIncomingFile, processCurriculumFile } from "./files.mjs";
 import { loadFounderDossier, saveFounderDossier } from "./dossier.mjs";
 import { LANGUAGE_VOICES, getLanguageCoachPrompt, listLanguageSessions, logLanguageSession } from "./skills/languages.mjs";
 import { fetchLiveNews, loadCachedRadar, saveCachedRadar, buildRadarPrompt } from "./skills/radar.mjs";
@@ -1455,6 +1455,28 @@ Seja cirúrgica, inspiradora, matematicamente sólida e orientada a patrimônio 
   if (req.method === "POST" && url.pathname === "/api/dossier") {
     const body = await readJsonBody(req);
     const updated = await saveFounderDossier(__dirname, body);
+    return sendJson(res, 200, { ok: true, dossier: updated });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/dossier/curriculum") {
+    const body = await readJsonBody(req);
+    const result = await processCurriculumFile({
+      appDir: __dirname,
+      fileName: body.fileName,
+      fileBase64: body.fileBase64,
+      textContent: body.textContent,
+      runSimplePromptAI,
+      saveMemoryFact,
+      memoryPath: MEMORY_PATH,
+      saveFounderDossier,
+    });
+    return sendJson(res, 200, result);
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/dossier/curriculum/delete") {
+    const updated = await saveFounderDossier(__dirname, {
+      curriculum: { fileName: null, uploadedAt: null, summary: null },
+    });
     return sendJson(res, 200, { ok: true, dossier: updated });
   }
 

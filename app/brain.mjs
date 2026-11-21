@@ -416,9 +416,13 @@ function buildSystemInstruction({ agentsPrompt, memoryPath, todayStr, weekdayInf
     ? dossier.projects.map((p) => `  * ${p.name || "Projeto"}${p.pillar ? ` [${p.pillar}]` : ""}: ${p.thesis || ""}`).join("\n")
     : `  * GluN Capital S.A.: ${dossier.companies?.glun || ""}\n  * ProntoMed: ${dossier.companies?.prontomed || ""}\n  * CliniMind: ${dossier.companies?.clinimind || ""}\n  * Nossa Casa: ${dossier.companies?.nossaCasa || ""}`;
 
+  const cvBlock = dossier.curriculum?.summary
+    ? `\n- Síntese Curricular & Autoridade Acadêmica/Profissional:\n${dossier.curriculum.summary}\n`
+    : "";
+
   const dossierBlock = `
 [DOSSIÊ DO FUNDADOR — BRUNO MENEGALI (SEU NORTE E INSPIRAÇÃO)]
-- Trajetória & Perfil: ${dossier.story}
+- Trajetória & Perfil: ${dossier.story}${cvBlock}
 - O Grande Norte (Meta Magna: R$ 1 BILHÃO): ${dossier.northStar}
 - Pilares de Negócio, Empresas & Projetos:
 ${projectsStr}

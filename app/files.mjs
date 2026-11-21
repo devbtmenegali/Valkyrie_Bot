@@ -5,11 +5,121 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { execFile } from "node:child_process";
 
 function ensureUploadsDir(appDir) {
   const p = path.join(appDir, "uploads");
   if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
   return p;
+}
+
+export async function extractDocumentText(filePath, appDir = path.dirname(filePath)) {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === ".txt" || ext === ".md" || ext === ".json" || ext === ".csv") {
+    try { return fs.readFileSync(filePath, "utf8"); } catch { return ""; }
+  }
+  if (ext === ".pdf") {
+    return new Promise((resolve) => {
+      const pyScript = `import pypdf, sys
+try:
+    reader = pypdf.PdfReader(sys.argv[1])
+    text = "\\n".join([page.extract_text() or "" for page in reader.pages])
+    print(text)
+except Exception:
+    sys.exit(0)`;
+      const venvPy = path.join(appDir, ".venv", "bin", "python3");
+      const pyBin = fs.existsSync(venvPy) ? venvPy : "python3";
+      execFile(pyBin, ["-c", pyScript, filePath], { maxBuffer: 10 * 1024 * 1024 }, (err, stdout) => {
+        if (err || !stdout) resolve("");
+        else resolve(stdout.trim());
+      });
+    });
+  }
+  if (ext === ".docx" || ext === ".doc" || ext === ".rtf") {
+    return new Promise((resolve) => {
+      execFile("textutil", ["-convert", "txt", "-stdout", filePath], { maxBuffer: 10 * 1024 * 1024 }, (err, stdout) => {
+        if (err || !stdout) resolve("");
+        else resolve(stdout.trim());
+      });
+    });
+  }
+  return "";
+}
+
+export async function processCurriculumFile({
+  appDir,
+  fileName,
+  fileBase64,
+  textContent,
+  runSimplePromptAI,
+  saveMemoryFact,
+  memoryPath,
+  saveFounderDossier,
+}) {
+  const uploads = ensureUploadsDir(appDir);
+  const safeName = (fileName || `curriculo_${Date.now()}.pdf`).replace(/[^a-zA-Z0-9._-]/g, "_");
+  const targetPath = path.join(uploads, `cv_${safeName}`);
+
+  if (fileBase64) {
+    fs.writeFileSync(targetPath, Buffer.from(fileBase64, "base64"));
+  } else if (textContent) {
+    fs.writeFileSync(targetPath, textContent, "utf8");
+  }
+
+  let extracted = textContent || await extractDocumentText(targetPath, appDir);
+
+  const sysPrompt = `Você é a Kyrie, Assessora Executiva e Estratégica de Bruno Menegali.
+Você acabou de receber o CURRÍCULO PROFISSIONAL E ACADÊMICO oficial do Bruno Menegali.
+Analise com rigor cirúrgico e extraia uma síntese executiva impecável para integrar ao Dossiê do Fundador.
+
+Formato da resposta:
+### 🎓 Formação Acadêmica & Docência
+(Títulos, universidades, pós-graduações, especializações, docência UNISUL/UNIBAVE)
+
+### 🏢 Trajetória Corporativa & Empreendedora
+(Empresas fundadas, cargos executivos, áreas de atuação e negócios)
+
+### ⚡ Competências Estratégicas & Diferenciais
+(Principais conquistas, habilidades de alta performance e autoridade)
+
+### 📌 Resumo Executivo para a Kyrie
+(Síntese de 2 a 3 parágrafos capturando o perfil e o DNA de realizador do Bruno)`;
+
+  const ai = await runSimplePromptAI({
+    preferredProvider: "openai",
+    systemPrompt: sysPrompt,
+    userText: `ARQUIVO: ${safeName}\n\nCONTEÚDO EXTRAÍDO DO CURRÍCULO:\n${(extracted || "Arquivo binário armazenado").slice(0, 7000)}`,
+    maxTokens: 1400,
+  });
+
+  const summary = ai.reply || "Currículo processado e salvo.";
+
+  if (saveFounderDossier) {
+    await saveFounderDossier(appDir, {
+      curriculum: {
+        fileName: safeName,
+        uploadedAt: new Date().toISOString(),
+        summary,
+        rawLength: (extracted || "").length,
+      },
+    });
+  }
+
+  if (saveMemoryFact) {
+    saveMemoryFact(memoryPath, {
+      pillar: "Fundador/Currículo",
+      fact: `Currículo acadêmico e profissional de Bruno Menegali incorporado ao Dossiê: "${safeName}".`,
+    });
+  }
+
+  return {
+    ok: true,
+    curriculum: {
+      fileName: safeName,
+      uploadedAt: new Date().toISOString(),
+      summary,
+    },
+  };
 }
 
 export async function processIncomingFile({
