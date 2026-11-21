@@ -342,6 +342,7 @@
         <button class="pill-btn done" id="voiceToggleBtn" onclick="toggleVoice()">🔊 Voz Ativa</button>
         <button class="pill-btn" id="stopVoiceBtn" onclick="stopSpeaking()" style="display:none;">⏹️ Parar</button>
         <button class="pill-btn" onclick="loadState()" title="Sincronizar">↻</button>
+        <button class="pill-btn gold" onclick="openMemoryModal()" title="Segundo Cérebro: Memórias aprendidas sobre a sua vida">🧠 Memória (<span id="sidebarMemoryCount">0</span>)</button>
       </div>
     </div>
 
@@ -425,10 +426,20 @@
         <button class="quick-chip" onclick="sendQuick('/leitura')">📖 Leitura Feita</button>
         <button class="quick-chip" onclick="sendQuick('/trade 500')">📈 Meta R$ 500</button>
       </div>
-      <form class="composer" onsubmit="handleSend(event)">
-        <button type="button" class="mic-btn" id="micBtn" onclick="toggleSingleMic()" title="Falar com a Kyrie">🎙️</button>
-        <input id="chatInput" type="text" placeholder="Digite ou clique no 🎙️ para falar com a Kyrie..." autocomplete="off" />
-        <button type="submit" class="send-btn">Enviar</button>
+      <form class="composer" onsubmit="handleSend(event)" style="display:flex;flex-direction:column;gap:6px;">
+        <div id="fileAttachPreview" style="display:none;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12.5px;color:var(--gold);display:flex;justify-content:space-between;align-items:center;">
+          <span id="fileAttachName">📄 Arquivo selecionado</span>
+          <button type="button" class="pill-btn" onclick="clearAttachedFile()" style="padding:2px 8px;font-size:11px;">✕ Cancelar anexo</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;width:100%;">
+          <label class="mic-btn" title="Anexar arquivo, PDF, imagem, livro ou skill" style="cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;">
+            <input type="file" id="fileAttachInput" onchange="handleFileSelect(event)" style="display:none;" />
+            📎
+          </label>
+          <button type="button" class="mic-btn" id="micBtn" onclick="toggleSingleMic()" title="Falar com a Kyrie">🎙️</button>
+          <input id="chatInput" type="text" placeholder="Digite, fale no 🎙️ ou anexe arquivos no 📎..." autocomplete="off" />
+          <button type="submit" class="send-btn">Enviar</button>
+        </div>
       </form>
     </section>
 
@@ -637,6 +648,38 @@
         <input id="bookTitle" placeholder="Título do livro ou tema (ex: A Psicologia Financeira - Morgan Housel)" required style="background:#121821;border:1px solid #243041;color:#e8edf4;padding:7px 10px;border-radius:8px;font-size:12.5px;" />
         <textarea id="bookContent" placeholder="Cole o resumo executivo, lições principais ou capítulos do livro aqui..." rows="4" required style="background:#121821;border:1px solid #243041;color:#e8edf4;padding:7px 10px;border-radius:8px;font-size:12.5px;resize:vertical;"></textarea>
         <button type="submit" class="btn-approve" style="align-self:flex-end;">Salvar Livro na Biblioteca</button>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- Modal do Segundo Cérebro (Memória de Aprendizado Contínuo da Kyrie) -->
+  <div id="memoryModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(7,10,15,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;">
+    <div style="background:#121821;border:1px solid #243041;border-radius:18px;padding:24px;width:580px;max-width:92vw;max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:14px;box-shadow:0 20px 40px rgba(0,0,0,0.6);">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <strong style="font-size:16px;color:var(--text);">🧠 Segundo Cérebro da Kyrie</strong>
+          <div style="font-size:12px;color:var(--muted);">Tudo o que a Kyrie aprendeu permanentemente sobre sua vida, preferências e negócios</div>
+        </div>
+        <button class="pill-btn" onclick="closeMemoryModal()">✕</button>
+      </div>
+
+      <div id="memoryList" style="display:flex;flex-direction:column;gap:9px;"></div>
+
+      <form onsubmit="submitNewMemory(event)" style="background:#0b0f14;padding:12px;border-radius:12px;border:1px solid #243041;display:flex;flex-direction:column;gap:8px;">
+        <strong style="font-size:13px;color:var(--accent);">+ Ensinar Novo Fato ou Regra para a Kyrie Lembrar</strong>
+        <div style="display:grid;grid-template-columns:140px 1fr;gap:8px;">
+          <select id="memPillar" class="tool-btn">
+            <option value="Família">Família</option>
+            <option value="Negócios">Negócios</option>
+            <option value="Finanças">Finanças</option>
+            <option value="Saúde">Saúde</option>
+            <option value="Preferências">Preferências</option>
+            <option value="Skills">Skills/Habilidades</option>
+          </select>
+          <input id="memFact" placeholder="Fato (ex: Gosto de café sem açúcar / Val prefere...)" required style="background:#121821;border:1px solid #243041;color:#e8edf4;padding:7px 10px;border-radius:8px;font-size:12.5px;" />
+        </div>
+        <button type="submit" class="btn-approve" style="align-self:flex-end;">Gravar na Memória</button>
       </form>
     </div>
   </div>
@@ -891,7 +934,149 @@
         return;
       }
       const perm = await Notification.requestPermission();
-      updateNotifBtn();
+      
+    let attachedFile = null;
+
+    function handleFileSelect(e) {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      attachedFile = file;
+      document.getElementById("fileAttachName").textContent = "📎 " + file.name + " (" + Math.round(file.size / 1024) + " KB)";
+      document.getElementById("fileAttachPreview").style.display = "flex";
+      document.getElementById("chatInput").focus();
+    }
+
+    function clearAttachedFile() {
+      attachedFile = null;
+      document.getElementById("fileAttachInput").value = "";
+      document.getElementById("fileAttachPreview").style.display = "none";
+    }
+
+    // Drag and Drop support
+    window.addEventListener("dragover", (e) => { e.preventDefault(); });
+    window.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const file = e.dataTransfer?.files?.[0];
+      if (file) {
+        attachedFile = file;
+        document.getElementById("fileAttachName").textContent = "📎 " + file.name + " (" + Math.round(file.size / 1024) + " KB)";
+        document.getElementById("fileAttachPreview").style.display = "flex";
+        switchTab("chat");
+        document.getElementById("chatInput").focus();
+      }
+    });
+
+    // Enhanced handleSend to support file attachments
+    const originalHandleSend = window.handleSend;
+    window.handleSend = async function(e) {
+      if (e) e.preventDefault();
+      const input = document.getElementById("chatInput");
+      const text = input.value.trim();
+
+      if (attachedFile) {
+        const file = attachedFile;
+        clearAttachedFile();
+        input.value = "";
+        setAvatarState("speaking", "Kyrie processando arquivo...");
+
+        // Lê arquivo como base64
+        const reader = new FileReader();
+        reader.onload = async () => {
+          const base64 = String(reader.result).split(",")[1] || "";
+          try {
+            const res = await fetch("/api/files/upload", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                fileName: file.name,
+                fileType: file.type,
+                fileBase64: base64,
+                prompt: text,
+              }),
+            });
+            const data = await res.json();
+            if (data.history) {
+              currentState.history = data.history;
+              renderMessages(currentState.history);
+            }
+            if (data.memoriesCount !== undefined) {
+              updateMemoryCount(data.memoriesCount);
+            }
+          } catch (err) {
+            alert("Erro ao enviar arquivo: " + err.message);
+          } finally {
+            setAvatarState("idle");
+          }
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+
+      // Se não tem arquivo, segue fluxo normal
+      sendText(text);
+    };
+
+    // ---------- Memory Vault Functions ----------
+    async function openMemoryModal() {
+      document.getElementById("memoryModal").style.display = "flex";
+      const listEl = document.getElementById("memoryList");
+      listEl.innerHTML = "<em>Carregando memórias aprendidas...</em>";
+      try {
+        const res = await fetch("/api/memory");
+        const data = await res.json();
+        const mems = data.memories || [];
+        updateMemoryCount(mems.length);
+        if (!mems.length) {
+          listEl.innerHTML = `<div class="empty-state">A Kyrie ainda não gravou memórias. Converse com ela normalmente que ela aprenderá automaticamente tudo sobre sua vida!</div>`;
+          return;
+        }
+        listEl.innerHTML = mems.map((m) => `
+          <div style="background:#0b0f14;border:1px solid #243041;border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;">
+            <div>
+              <span class="tag gold" style="font-size:10px;text-transform:uppercase;">${escapeHtml(m.pillar || "Geral")}</span>
+              <div style="font-size:13px;color:#e8edf4;margin-top:3px;">${escapeHtml(m.fact)}</div>
+            </div>
+            <button class="pill-btn" onclick="deleteMemory('${m.id}')" style="color:#fda4af;padding:4px 8px;font-size:11px;" title="Esquecer este fato">🗑️</button>
+          </div>
+        `).join("");
+      } catch (err) {
+        listEl.textContent = "Erro ao carregar memórias: " + err.message;
+      }
+    }
+
+    function closeMemoryModal() {
+      document.getElementById("memoryModal").style.display = "none";
+    }
+
+    async function submitNewMemory(e) {
+      e.preventDefault();
+      const pillar = document.getElementById("memPillar").value;
+      const fact = document.getElementById("memFact").value;
+      const res = await fetch("/api/memory", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pillar, fact }),
+      });
+      if (res.ok) {
+        document.getElementById("memFact").value = "";
+        openMemoryModal();
+      }
+    }
+
+    async function deleteMemory(id) {
+      if (!confirm("Deseja apagar este aprendizado da memória da Kyrie?")) return;
+      await fetch("/api/memory/delete", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      openMemoryModal();
+    }
+
+    function updateMemoryCount(count) {
+      const el = document.getElementById("sidebarMemoryCount");
+      if (el) el.textContent = count || 0;
+    }
+
+    updateNotifBtn();
       if (perm === "granted") {
         fireNotification("⚡ Kyrie Ativada", "Briefings, Day Trade e alertas urgentes liberados.", "welcome");
         if (voiceEnabled) speakText("Alertas ativados, Bruno. Pode contar comigo.");
@@ -1451,6 +1636,7 @@
       mEl.scrollTop = mEl.scrollHeight;
 
       renderInbox(s.inbox, s.evolutionConfigured);
+      if (s.memoriesCount !== undefined) updateMemoryCount(s.memoriesCount);
     }
 
     async function changeProvider() {

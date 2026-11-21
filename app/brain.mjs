@@ -101,6 +101,13 @@ export function saveMemoryFact(memoryPath, { pillar = "Geral", fact }) {
   return entry;
 }
 
+export function deleteMemoryFact(memoryPath, id) {
+  let facts = loadMemoryFacts(memoryPath);
+  facts = facts.filter((f) => f.id !== id);
+  fs.writeFileSync(memoryPath, JSON.stringify(facts, null, 2), "utf8");
+  return true;
+}
+
 // Definição unificada das 7 ferramentas executivas
 const BASE_TOOLS = [
   {

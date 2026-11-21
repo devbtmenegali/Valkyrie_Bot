@@ -10,13 +10,14 @@ import crypto from "node:crypto";
 import { execFile, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { sendWhatsAppMessage } from "../whatsapp/send.mjs";
-import { runValkyrieAI, runSimplePromptAI, getConfiguredProviders, loadMemoryFacts, saveMemoryFact } from "./brain.mjs";
+import { runValkyrieAI, runSimplePromptAI, getConfiguredProviders, loadMemoryFacts, saveMemoryFact, deleteMemoryFact } from "./brain.mjs";
 import { getHolidayInfo } from "./holidays.mjs";
 import { fetchCalendarEvents, processCalendarQueue } from "./calendar.mjs";
 import { fetchPreMarketData, fetchEconomicCalendar } from "./market.mjs";
 import { listContacts, upsertContact, getUpcomingBirthdays, buildSupplierMessage, searchEvolutionContacts } from "./skills/contacts.mjs";
 import { listFinance, addFinanceEntry, updateFinanceEntry, deleteFinanceEntry, markFinancePaid, getFinanceSummary, buildCollectionMessage } from "./skills/finance.mjs";
 import { listLibraryBooks, addLibraryBook, buildWealthSystemPrompt } from "./skills/wealth.mjs";
+import { processIncomingFile } from "./files.mjs";
 import { LANGUAGE_VOICES, getLanguageCoachPrompt, listLanguageSessions, logLanguageSession } from "./skills/languages.mjs";
 import { fetchLiveNews, loadCachedRadar, saveCachedRadar, buildRadarPrompt } from "./skills/radar.mjs";
 import { macOpenApp, macOpenUrl, macSearchFiles, macOpenFile, macSystemControl } from "./skills/mac.mjs";
@@ -903,6 +904,37 @@ async function generateOrGetRadar(forceRefresh = false) {
   return result;
 }
 
+// Reflexão em segundo plano: Kyrie aprende silenciosa e continuamente sobre a vida, preferências e negócios de Bruno
+async function reflectAndLearnAboutBruno({ userText, botReply }) {
+  if (!userText || userText.length < 12) return;
+  if (userText.startsWith("/")) return;
+
+  const prompt = `Você é o submódulo de memória de longo prazo da Kyrie.
+Sua única missão: identificar se Bruno Menegali expressou algum fato novo sobre sua vida pessoal, familiar, hábitos, preferências ou decisões estratégicas de negócios que deva ser lembrado permanentemente.
+
+Mensagem do Bruno: "${userText.slice(0, 500)}"
+Resposta da Kyrie: "${botReply.slice(0, 300)}"
+
+Se houver um fato permanente relevante, responda EXCLUSIVAMENTE um JSON:
+{"hasFact": true, "pillar": "Família|Negócios|Finanças|Saúde|Preferências", "fact": "Fato conciso em terceira pessoa (máx. 120 caracteres)"}
+Caso contrário:
+{"hasFact": false}`;
+
+  try {
+    const ai = await runSimplePromptAI({
+      preferredProvider: "openai",
+      systemPrompt: prompt,
+      userText: "Avalie e extraia se houver fato novo a reter.",
+      maxTokens: 140,
+    });
+    const parsed = JSON.parse(ai.reply.match(/\{[\s\S]*\}/)?.[0] || "{}");
+    if (parsed.hasFact && parsed.fact && parsed.pillar) {
+      saveMemoryFact(MEMORY_PATH, { pillar: parsed.pillar, fact: parsed.fact });
+      console.log(`[Kyrie Memory] Fato aprendido: [${parsed.pillar}] ${parsed.fact}`);
+    }
+  } catch {}
+}
+
 // ---------- Proactive Chief of Staff Engine (06:30, 08:45, 11:15, 14:00, 16:30, 21:00 + 15m antes de eventos) ----------
 const proactiveEngine = createProactiveEngine({
   runSimplePromptAI,
@@ -1045,6 +1077,7 @@ const server = http.createServer(async (req, res) => {
       providers: getConfiguredProviders(),
       geminiEnabled: Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY),
       evolutionConfigured: Boolean(process.env.EVOLUTION_API_URL && process.env.EVOLUTION_API_KEY),
+      memoriesCount: loadMemoryFacts(MEMORY_PATH).length,
     });
   }
 
@@ -1380,6 +1413,9 @@ Seja cirúrgica, inspiradora, matematicamente sólida e orientada a patrimônio 
       speakMac(reply);
     }
 
+    // Dispara aprendizado contínuo assíncrono em segundo plano
+    reflectAndLearnAboutBruno({ userText: text, botReply: reply }).catch(() => {});
+
     const calToday = await fetchCalendarDate(getLocalDateStr(0));
     return sendJson(res, 200, {
       reply,
@@ -1389,6 +1425,68 @@ Seja cirúrgica, inspiradora, matematicamente sólida e orientada a patrimônio 
       conflictsToday: detectConflicts(calToday.events),
       kanban: parseKanban(),
       habits: getTodayHabits(),
+      memoriesCount: loadMemoryFacts(MEMORY_PATH).length,
+    });
+  }
+
+  // ---------- Memory Vault (Segundo Cérebro de Aprendizado Contínuo) ----------
+  if (req.method === "GET" && url.pathname === "/api/memory") {
+    return sendJson(res, 200, { ok: true, memories: loadMemoryFacts(MEMORY_PATH) });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/memory") {
+    const body = await readJsonBody(req);
+    const saved = saveMemoryFact(MEMORY_PATH, body);
+    return sendJson(res, 200, { ok: true, memory: saved, memories: loadMemoryFacts(MEMORY_PATH) });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/memory/delete") {
+    const body = await readJsonBody(req);
+    deleteMemoryFact(MEMORY_PATH, body.id);
+    return sendJson(res, 200, { ok: true, memories: loadMemoryFacts(MEMORY_PATH) });
+  }
+
+  // ---------- Processamento Inteligente de Arquivos (PDF, Imagens, Documentos, Livros, Skills) ----------
+  if (req.method === "POST" && url.pathname === "/api/files/upload") {
+    const body = await readJsonBody(req);
+    const result = await processIncomingFile({
+      appDir: __dirname,
+      fileName: body.fileName,
+      fileType: body.fileType,
+      fileBase64: body.fileBase64,
+      textContent: body.textContent,
+      userPrompt: body.prompt || "",
+      runSimplePromptAI,
+      addFinanceEntry,
+      addLibraryBook,
+      saveMemoryFact,
+      memoryPath: MEMORY_PATH,
+    });
+
+    const history = loadHistory();
+    const userMsg = {
+      role: "user",
+      time: nowTimeStr(),
+      text: body.prompt ? `📎 [Arquivo: ${body.fileName}]\n${body.prompt}` : `📎 [Arquivo enviado: ${body.fileName}]`,
+    };
+    const botMsg = {
+      role: "valkyrie",
+      time: nowTimeStr(),
+      text: result.message,
+      tools: [result.action],
+      providerUsed: "Análise de Arquivo",
+    };
+    history.push(userMsg, botMsg);
+    saveHistory(history);
+    sbAppendMessage(userMsg).catch(() => {});
+    sbAppendMessage(botMsg).catch(() => {});
+
+    if (voiceAlertsEnabled) speakMac(result.message);
+
+    return sendJson(res, 200, {
+      ok: true,
+      result,
+      history,
       memoriesCount: loadMemoryFacts(MEMORY_PATH).length,
     });
   }
