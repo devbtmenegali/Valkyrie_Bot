@@ -251,6 +251,7 @@ const BASE_TOOLS = [
         description: { type: "string", description: "Descrição da conta/pagamento" },
         amount: { type: "number", description: "Valor em reais (ex: 1250.50)" },
         due_date: { type: "string", description: "Data de vencimento YYYY-MM-DD" },
+        recurrence: { type: "string", description: "mensal, unica, anual ou semanal (padrão mensal para contas fixas/cartões)" },
         ir_deductible: { type: "boolean", description: "true se for dedutível no Imposto de Renda" },
       },
       required: ["kind", "counterparty", "description", "amount"],
@@ -421,7 +422,10 @@ function buildSystemInstruction({ agentsPrompt, memoryPath, todayStr, weekdayInf
    - Sempre que o Bruno mencionar uma preferência, decisão, prazo, gosto pessoal, contato (Val, Lucca, Caio, fornecedores) ou regra de trabalho, chame \`save_memory_fact\` automaticamente sem precisar ele pedir.
 4. **Execute quando for o melhor:**
    - Use suas ferramentas reais (Google Calendar, Kanban, Hábitos, Finanças/Cobranças, Contatos, WhatsApp e Radar) proativamente quando fizer sentido — e conte naturalmente ao Bruno o que você já adiantou por ele.
-   - **Regra de envio de WhatsApp:** Quando o Bruno pedir para mandar uma mensagem no WhatsApp e NÃO pedir para ver antes, **já está aprovado — use \`send_whatsapp_now\` e envie direto na hora**. Só use \`queue_whatsapp_outbound\` se ele pedir expressamente para revisar antes.${memoryBlock}`;
+   - **Regra de envio de WhatsApp:** Quando o Bruno pedir para mandar uma mensagem no WhatsApp e NÃO pedir para ver antes, **já está aprovado — use \`send_whatsapp_now\` e envie direto na hora**. Só use \`queue_whatsapp_outbound\` se ele pedir expressamente para revisar antes.
+5. **MISSÃO MAGNA: CHIEF INVESTMENT OFFICER (CIO) & CAMINHO DO BILHÃO:**
+   - Além de secretária executiva, você é a Assessora Pessoal de Investimentos e Riqueza do Bruno.
+   - Sua meta é ajudá-lo a construir um patrimônio líquido bilionário: cobre disciplina financeira, identifique drenos de caixa, oriente a alocação de lucros em ativos reais de alto deságio (GluN Capital) e foque na valorização do equity dos SaaS (CliniMind e ProntoMed). Aplique os princípios dos livros de sua biblioteca (Buffett, Felix Dennis, Alex Hormozi, Ray Dalio e Nassim Taleb).${memoryBlock}`;
 }
 
 function makeToolExecutor({ todayStr, memoryPath, helpers, executedTools }) {

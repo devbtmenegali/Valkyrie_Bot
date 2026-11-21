@@ -1,5 +1,6 @@
 /**
- * Skill: Controle Financeiro PF/PJ, Contas a Pagar & Receber + Cobranças
+ * Skill: Controle Financeiro Multiescopo (PF, Nossa Casa, GluN, ProntoMed, CliniMind)
+ * Suporte a Contas a Pagar/Receber, Recorrência (Única/Mensal/Anual), Edição Completa, Rollover e Cobranças
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -56,6 +57,19 @@ function todayISO() {
   return `${map.year}-${map.month}-${map.day}`;
 }
 
+function computeNextDueDate(currentDueDate, recurrence) {
+  const [y, m, d] = (currentDueDate || todayISO()).split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d));
+  if (recurrence === "mensal") {
+    date.setUTCMonth(date.getUTCMonth() + 1);
+  } else if (recurrence === "anual") {
+    date.setUTCFullYear(date.getUTCFullYear() + 1);
+  } else if (recurrence === "semanal") {
+    date.setUTCDate(date.getUTCDate() + 7);
+  }
+  return date.toISOString().slice(0, 10);
+}
+
 export async function listFinance(appDir) {
   const remote = await sbReq("valkyrie_finance?select=*&order=due_date.asc");
   let list = Array.isArray(remote) ? remote : readLocal(appDir);
@@ -65,6 +79,7 @@ export async function listFinance(appDir) {
   return list.map((item) => ({
     ...item,
     amount: Number(item.amount || 0),
+    recurrence: item.recurrence || "unica",
     effectiveStatus: item.status === "pago" ? "pago" : item.due_date < today ? "atrasado" : "pendente",
   }));
 }
@@ -79,6 +94,7 @@ export async function addFinanceEntry(appDir, data) {
     description: String(data.description || "").trim(),
     amount: Number(String(data.amount || "0").replace(/[^\d.,-]/g, "").replace(",", ".")) || 0,
     due_date: data.due_date || todayISO(),
+    recurrence: data.recurrence || "mensal",
     status: data.status || "pendente",
     ir_deductible: Boolean(data.ir_deductible),
     notes: data.notes || "",
@@ -98,11 +114,84 @@ export async function addFinanceEntry(appDir, data) {
   return entry;
 }
 
+export async function updateFinanceEntry(appDir, id, updates) {
+  const list = await listFinance(appDir);
+  const idx = list.findIndex((i) => i.id === id);
+  if (idx === -1) return null;
+
+  const cur = list[idx];
+  const updated = {
+    ...cur,
+    kind: updates.kind || cur.kind,
+    scope: updates.scope || cur.scope,
+    counterparty: updates.counterparty !== undefined ? String(updates.counterparty).trim() : cur.counterparty,
+    contact_phone: updates.contact_phone !== undefined ? String(updates.contact_phone).replace(/\D/g, "") : cur.contact_phone,
+    description: updates.description !== undefined ? String(updates.description).trim() : cur.description,
+    amount: updates.amount !== undefined ? (Number(String(updates.amount).replace(/[^\d.,-]/g, "").replace(",", ".")) || 0) : cur.amount,
+    due_date: updates.due_date || cur.due_date,
+    recurrence: updates.recurrence || cur.recurrence || "unica",
+    status: updates.status || cur.status,
+    notes: updates.notes !== undefined ? updates.notes : cur.notes,
+    updated_at: new Date().toISOString(),
+  };
+
+  list[idx] = updated;
+  writeLocal(appDir, list);
+
+  await sbReq(`valkyrie_finance?id=eq.${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify(updated),
+  });
+
+  return updated;
+}
+
+export async function deleteFinanceEntry(appDir, id) {
+  let list = await listFinance(appDir);
+  list = list.filter((i) => i.id !== id);
+  writeLocal(appDir, list);
+
+  await sbReq(`valkyrie_finance?id=eq.${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { Prefer: "return=minimal" },
+  });
+
+  return true;
+}
+
 export async function markFinancePaid(appDir, id) {
   const list = await listFinance(appDir);
   const item = list.find((i) => i.id === id);
   if (!item) return null;
   item.status = "pago";
+
+  // Se for conta recorrente (mensal/anual/semanal), agenda automaticamente o próximo ciclo!
+  if (item.recurrence && item.recurrence !== "unica") {
+    const nextDate = computeNextDueDate(item.due_date, item.recurrence);
+    const nextEntry = {
+      id: crypto.randomUUID(),
+      kind: item.kind,
+      scope: item.scope,
+      counterparty: item.counterparty,
+      contact_phone: item.contact_phone || "",
+      description: item.description,
+      amount: item.amount,
+      due_date: nextDate,
+      recurrence: item.recurrence,
+      status: "pendente",
+      ir_deductible: item.ir_deductible,
+      notes: item.notes || "",
+      created_at: new Date().toISOString(),
+    };
+    list.push(nextEntry);
+    sbReq("valkyrie_finance", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify(nextEntry),
+    }).catch(() => {});
+  }
+
   writeLocal(appDir, list);
 
   await sbReq(`valkyrie_finance?id=eq.${encodeURIComponent(id)}`, {
@@ -123,6 +212,18 @@ export async function getFinanceSummary(appDir) {
 
   const sum = (arr) => arr.reduce((acc, x) => acc + Number(x.amount || 0), 0);
 
+  // Totais por escopo (PF, Nossa Casa, GluN, ProntoMed, CliniMind)
+  const byScope = {};
+  for (const item of list) {
+    const s = item.scope || "PF";
+    if (!byScope[s]) byScope[s] = { pagar: 0, receber: 0, count: 0 };
+    if (item.status !== "pago") {
+      if (item.kind === "pagar") byScope[s].pagar += Number(item.amount || 0);
+      else byScope[s].receber += Number(item.amount || 0);
+      byScope[s].count++;
+    }
+  }
+
   return {
     totalPagarAberto: sum(openPay),
     totalReceberAberto: sum(openRecv),
@@ -131,6 +232,7 @@ export async function getFinanceSummary(appDir) {
     countPagar: openPay.length,
     countReceber: openRecv.length,
     overdueReceivables: overdueRecv,
+    byScope,
     items: list,
   };
 }

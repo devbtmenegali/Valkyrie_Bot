@@ -15,7 +15,8 @@ import { getHolidayInfo } from "./holidays.mjs";
 import { fetchCalendarEvents, processCalendarQueue } from "./calendar.mjs";
 import { fetchPreMarketData, fetchEconomicCalendar } from "./market.mjs";
 import { listContacts, upsertContact, getUpcomingBirthdays, buildSupplierMessage, searchEvolutionContacts } from "./skills/contacts.mjs";
-import { listFinance, addFinanceEntry, markFinancePaid, getFinanceSummary, buildCollectionMessage } from "./skills/finance.mjs";
+import { listFinance, addFinanceEntry, updateFinanceEntry, deleteFinanceEntry, markFinancePaid, getFinanceSummary, buildCollectionMessage } from "./skills/finance.mjs";
+import { listLibraryBooks, addLibraryBook, buildWealthSystemPrompt } from "./skills/wealth.mjs";
 import { LANGUAGE_VOICES, getLanguageCoachPrompt, listLanguageSessions, logLanguageSession } from "./skills/languages.mjs";
 import { fetchLiveNews, loadCachedRadar, saveCachedRadar, buildRadarPrompt } from "./skills/radar.mjs";
 import { macOpenApp, macOpenUrl, macSearchFiles, macOpenFile, macSystemControl } from "./skills/mac.mjs";
@@ -1161,10 +1162,72 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { ok: true, finance: await getFinanceSummary(__dirname) });
   }
 
+  if (req.method === "POST" && url.pathname === "/api/finance/update") {
+    const body = await readJsonBody(req);
+    const updated = await updateFinanceEntry(__dirname, body.id, body);
+    if (!updated) return sendJson(res, 404, { error: "Lançamento não encontrado" });
+    return sendJson(res, 200, { ok: true, item: updated, finance: await getFinanceSummary(__dirname) });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/finance/delete") {
+    const body = await readJsonBody(req);
+    await deleteFinanceEntry(__dirname, body.id);
+    return sendJson(res, 200, { ok: true, finance: await getFinanceSummary(__dirname) });
+  }
+
   if (req.method === "POST" && url.pathname === "/api/finance/pay") {
     const body = await readJsonBody(req);
     await markFinancePaid(__dirname, body.id);
     return sendJson(res, 200, { ok: true, finance: await getFinanceSummary(__dirname) });
+  }
+
+  // ---------- Wealth Advisor & Knowledge Library Endpoints ----------
+  if (req.method === "GET" && url.pathname === "/api/wealth/library") {
+    return sendJson(res, 200, { ok: true, books: listLibraryBooks(__dirname) });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/wealth/library") {
+    const body = await readJsonBody(req);
+    if (!body.content) return sendJson(res, 400, { error: "Conteúdo obrigatório" });
+    const saved = addLibraryBook(__dirname, body);
+    return sendJson(res, 200, { ok: true, book: saved, books: listLibraryBooks(__dirname) });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/wealth/diagnosis") {
+    const fin = await getFinanceSummary(__dirname);
+    const kanban = parseKanban();
+    const systemPrompt = buildWealthSystemPrompt(__dirname);
+
+    const userText = `SITUAÇÃO ATUAL DAS FINANÇAS & NEGÓCIOS DO BRUNO:
+- Contas a Pagar em Aberto: R$ ${fin.totalPagarAberto.toFixed(2)} (${fin.countPagar} contas)
+- Contas a Receber em Aberto: R$ ${fin.totalReceberAberto.toFixed(2)} (${fin.countReceber} recebimentos)
+- Divisão por Escopo (Centros de Custo): ${JSON.stringify(fin.byScope || {})}
+- Lançamentos Ativos:
+${fin.items.map((i) => `  * [${i.scope}] ${i.kind.toUpperCase()} - ${i.counterparty}: "${i.description}" - R$ ${Number(i.amount).toFixed(2)} (venc. ${i.due_date}, ${i.recurrence || "unica"}, status: ${i.status})`).join("\n") || "  * Nenhuma conta cadastrada ainda."}
+
+KANBAN E PROJETOS EM ANDAMENTO:
+${kanban.map((s) => `### ${s.title}\n` + s.items.map((it) => `- [${it.status}] ${it.text}`).join("\n")).join("\n\n")}
+
+OBJETIVO DA SUA AVALIAÇÃO COMO CIO / ASSESSORA DE RIQUEZA:
+Analise as finanças atuais do Bruno, aponte onde há desperdício ou risco, avalie o fluxo de caixa consolidado e monte o **Plano Tático do Caminho do Bilhão** para as 4 frentes:
+1. 🏥 Escala e Múltiplo de Valuation do SaaS (ProntoMed / CliniMind)
+2. 🏛️ Holding e Arbitragem de Ativos Reais (GluN Capital S.A. / Leilões)
+3. 🏪 Geração de Fluxo de Caixa Limpo (Nossa Casa / Cash Cow)
+4. 💰 Otimização das Finanças Pessoais (PF) e Alocação de Capital Antifrágil.
+
+Seja cirúrgica, inspiradora, matematicamente sólida e orientada a patrimônio líquido.`;
+
+    try {
+      const ai = await runSimplePromptAI({
+        preferredProvider: preferredProvider === "auto" ? "xai" : preferredProvider,
+        systemPrompt,
+        userText,
+        maxTokens: 3000,
+      });
+      return sendJson(res, 200, { ok: true, diagnosis: ai.reply, providerUsed: ai.providerUsed });
+    } catch (err) {
+      return sendJson(res, 500, { error: err.message });
+    }
   }
 
   if (req.method === "POST" && url.pathname === "/api/finance/collect") {

@@ -62,9 +62,27 @@ create table if not exists public.valkyrie_habits (
   updated_at timestamptz not null default now()
 );
 
+-- 6. Finanças & Gestão de Riqueza Multiescopo (PF, Nossa Casa, GluN, ProntoMed, CliniMind)
+create table if not exists public.valkyrie_finance (
+  id uuid primary key default gen_random_uuid(),
+  kind text not null check (kind in ('pagar', 'receber')),
+  scope text not null default 'PF',
+  counterparty text not null,
+  contact_phone text default '',
+  description text not null,
+  amount numeric(12, 2) not null default 0,
+  due_date date not null,
+  recurrence text not null default 'unica' check (recurrence in ('unica', 'mensal', 'anual', 'semanal')),
+  status text not null default 'pendente' check (status in ('pendente', 'pago', 'cancelado')),
+  ir_deductible boolean not null default false,
+  notes text default '',
+  created_at timestamptz not null default now()
+);
+
 -- Bloqueia acesso anônimo público (apenas o servidor Valkyrie com sb_secret acessa)
 alter table public.valkyrie_kv enable row level security;
 alter table public.valkyrie_messages enable row level security;
 alter table public.valkyrie_memory enable row level security;
 alter table public.valkyrie_whatsapp_inbox enable row level security;
 alter table public.valkyrie_habits enable row level security;
+alter table public.valkyrie_finance enable row level security;

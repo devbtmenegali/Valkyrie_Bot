@@ -481,16 +481,51 @@
     <!-- Finance & Collections View -->
     <section class="view" id="viewFinance">
       <div style="padding:16px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;">
+        <!-- Top Toolbar: Wealth Advisor & Filter -->
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div>
+            <strong style="font-size:15px;">💰 Finanças & Gestão de Riqueza</strong>
+            <div style="font-size:12px;color:var(--muted);">Contas a Pagar, Receber e Planejamento Patrimonial Bilionário</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="pill-btn gold" onclick="runWealthDiagnosis()">💎 Diagnóstico do CIO (Caminho do Bilhão)</button>
+            <button class="pill-btn" onclick="openLibraryModal()">📚 Livros da Kyrie (<span id="libCount">3</span>)</button>
+          </div>
+        </div>
+
+        <div id="wealthDiagnosisCard" style="display:none;background:radial-gradient(circle at top left, rgba(234,179,8,0.14), #111827);border:1px solid rgba(234,179,8,0.4);border-radius:14px;padding:16px;line-height:1.6;font-size:13.5px;position:relative;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <strong style="color:var(--gold);font-size:14px;">💎 Diagnóstico Estratégico de Riqueza da Kyrie</strong>
+            <button class="pill-btn" onclick="document.getElementById('wealthDiagnosisCard').style.display='none'">Fechar ✕</button>
+          </div>
+          <div id="wealthDiagnosisBody" style="white-space:pre-wrap;">Analisando patrimônio e fluxo de caixa...</div>
+        </div>
+
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;" id="finSummaryCards"></div>
-        <form onsubmit="addFinance(event)" style="display:grid;grid-template-columns:100px 110px 1fr 1fr 110px 130px auto;gap:8px;background:var(--panel);padding:12px;border-radius:12px;border:1px solid var(--border);align-items:center;">
+
+        <!-- Filter bar by Scope -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <span style="font-size:12px;color:var(--muted);margin-right:4px;">Filtrar:</span>
+          <button class="pill-btn done" id="scopeFilterALL" onclick="filterFinanceScope('ALL')">Todos</button>
+          <button class="pill-btn" id="scopeFilterPF" onclick="filterFinanceScope('PF')">PF (Pessoal)</button>
+          <button class="pill-btn" id="scopeFilterNossaCasa" onclick="filterFinanceScope('Nossa Casa')">Nossa Casa</button>
+          <button class="pill-btn" id="scopeFilterGluN" onclick="filterFinanceScope('GluN')">GluN Capital</button>
+          <button class="pill-btn" id="scopeFilterProntoMed" onclick="filterFinanceScope('ProntoMed')">ProntoMed</button>
+          <button class="pill-btn" id="scopeFilterCliniMind" onclick="filterFinanceScope('CliniMind')">CliniMind</button>
+        </div>
+
+        <!-- Form with Recurrence -->
+        <form onsubmit="addFinance(event)" style="display:grid;grid-template-columns:100px 110px 1fr 1fr 105px 110px 120px auto;gap:8px;background:var(--panel);padding:12px;border-radius:12px;border:1px solid var(--border);align-items:center;">
           <select id="finKind" class="tool-btn"><option value="pagar">A Pagar</option><option value="receber">A Receber</option></select>
           <select id="finScope" class="tool-btn"><option value="PF">PF</option><option value="Nossa Casa">Nossa Casa</option><option value="GluN">GluN</option><option value="ProntoMed">ProntoMed</option><option value="CliniMind">CliniMind</option></select>
           <input id="finCounterparty" placeholder="Pessoa / Empresa" required style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:12.5px;" />
-          <input id="finDesc" placeholder="Descrição" required style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:12.5px;" />
+          <input id="finDesc" placeholder="Descrição (ex: Cartão Nu Bank)" required style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:12.5px;" />
+          <select id="finRecurrence" class="tool-btn" title="Recorrência"><option value="mensal" selected>🔁 Mensal</option><option value="unica">📌 Única</option><option value="anual">📅 Anual</option><option value="semanal">⚡ Semanal</option></select>
           <input id="finAmount" type="number" step="0.01" placeholder="Valor R$" required style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:12.5px;" />
           <input id="finDue" type="date" required style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:12px;" />
           <button type="submit" class="btn-approve">+ Lançar</button>
         </form>
+
         <div id="finList" style="display:flex;flex-direction:column;gap:9px;"></div>
       </div>
     </section>
@@ -532,7 +567,81 @@
       <button class="mnav-btn" id="mTabContacts" onclick="switchTab('contacts')"><span class="ico">👥</span>Contatos</button>
       <button class="mnav-btn" id="mTabInbox" onclick="switchTab('inbox')"><span class="ico">📥</span>Whats</button>
     </nav>
-  </main>
+  
+  <!-- Modal de Edição Financeira -->
+  <div id="finEditModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(7,10,15,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;">
+    <form onsubmit="saveEditFinance(event)" style="background:#121821;border:1px solid #243041;border-radius:18px;padding:24px;width:380px;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 40px rgba(0,0,0,0.6);">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <strong style="font-size:15px;color:var(--text);">✏️ Editar Lançamento</strong>
+        <button type="button" class="pill-btn" onclick="closeEditFinance()">✕</button>
+      </div>
+      <input type="hidden" id="editFinId" />
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">Tipo:</label>
+          <select id="editFinKind" class="tool-btn" style="width:100%;"><option value="pagar">A Pagar</option><option value="receber">A Receber</option></select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">Escopo:</label>
+          <select id="editFinScope" class="tool-btn" style="width:100%;"><option value="PF">PF</option><option value="Nossa Casa">Nossa Casa</option><option value="GluN">GluN</option><option value="ProntoMed">ProntoMed</option><option value="CliniMind">CliniMind</option></select>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">Favorecido / Empresa:</label>
+        <input id="editFinCounterparty" required style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;font-size:13px;" />
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">Descrição:</label>
+        <input id="editFinDesc" required style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;font-size:13px;" />
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">Valor R$:</label>
+          <input id="editFinAmount" type="number" step="0.01" required style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;font-size:13px;" />
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">Recorrência:</label>
+          <select id="editFinRecurrence" class="tool-btn" style="width:100%;"><option value="mensal">🔁 Mensal</option><option value="unica">📌 Única</option><option value="anual">📅 Anual</option><option value="semanal">⚡ Semanal</option></select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">Vencimento:</label>
+          <input id="editFinDue" type="date" required style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;font-size:12px;" />
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:3px;">Status:</label>
+          <select id="editFinStatus" class="tool-btn" style="width:100%;"><option value="pendente">Pendente</option><option value="pago">Pago</option></select>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px;">
+        <button type="button" class="pill-btn" onclick="closeEditFinance()">Cancelar</button>
+        <button type="submit" class="btn-approve">Salvar Alterações</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Modal da Biblioteca de Livros da Kyrie -->
+  <div id="libraryModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(7,10,15,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;">
+    <div style="background:#121821;border:1px solid #243041;border-radius:18px;padding:24px;width:560px;max-width:92vw;max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:14px;box-shadow:0 20px 40px rgba(0,0,0,0.6);">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <strong style="font-size:16px;color:var(--text);">📚 Biblioteca de Conhecimento da Kyrie</strong>
+          <div style="font-size:12px;color:var(--muted);">Livros, playbooks e frameworks absorvidos pela sua assessora</div>
+        </div>
+        <button class="pill-btn" onclick="closeLibraryModal()">✕</button>
+      </div>
+      <div id="libraryList" style="display:flex;flex-direction:column;gap:10px;"></div>
+      <form onsubmit="submitNewBook(event)" style="background:#0b0f14;padding:12px;border-radius:12px;border:1px solid #243041;display:flex;flex-direction:column;gap:8px;">
+        <strong style="font-size:13px;color:var(--gold);">+ Adicionar Livro ou Playbook para a Kyrie Estudar</strong>
+        <input id="bookTitle" placeholder="Título do livro ou tema (ex: A Psicologia Financeira - Morgan Housel)" required style="background:#121821;border:1px solid #243041;color:#e8edf4;padding:7px 10px;border-radius:8px;font-size:12.5px;" />
+        <textarea id="bookContent" placeholder="Cole o resumo executivo, lições principais ou capítulos do livro aqui..." rows="4" required style="background:#121821;border:1px solid #243041;color:#e8edf4;padding:7px 10px;border-radius:8px;font-size:12.5px;resize:vertical;"></textarea>
+        <button type="submit" class="btn-approve" style="align-self:flex-end;">Salvar Livro na Biblioteca</button>
+      </form>
+    </div>
+  </div>
+
+</main>
 
   <script>
     let currentState = null;
@@ -955,37 +1064,74 @@
 
     function brl(v) { return Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
 
+    let cachedFinance = null;
+    let selectedFinanceScope = "ALL";
+
+    function filterFinanceScope(scope) {
+      selectedFinanceScope = scope;
+      ["ALL", "PF", "Nossa Casa", "GluN", "ProntoMed", "CliniMind"].forEach((s) => {
+        const btnId = "scopeFilter" + s.replace(/\s+/g, "");
+        const btn = document.getElementById(btnId);
+        if (btn) {
+          if (s === scope) btn.classList.add("done");
+          else btn.classList.remove("done");
+        }
+      });
+      renderFinanceList();
+    }
+
     function renderFinance(fin) {
       if (!fin) return;
+      cachedFinance = fin;
       document.getElementById("finSummaryCards").innerHTML = `
         <div class="card"><div class="card-title">A Pagar (Aberto)</div><strong style="font-size:18px;color:#fda4af;">${brl(fin.totalPagarAberto)}</strong></div>
         <div class="card"><div class="card-title">A Receber (Aberto)</div><strong style="font-size:18px;color:var(--accent);">${brl(fin.totalReceberAberto)}</strong></div>
         <div class="card"><div class="card-title">Cobranças Atrasadas</div><strong style="font-size:18px;color:var(--gold);">${brl(fin.totalAtrasadoReceber)}</strong></div>
       `;
+      renderFinanceList();
+    }
+
+    function renderFinanceList() {
+      const fin = cachedFinance;
       const el = document.getElementById("finList");
-      if (!fin.items?.length) {
-        el.innerHTML = `<div class="empty-state">Nenhuma conta lançada ainda. Use o formulário acima ou diga no chat: <em>"Valquíria, lança conta a receber de R$ 1.500 do cliente X vencendo dia 25"</em>.</div>`;
+      if (!fin || !el) return;
+
+      const items = (fin.items || []).filter((i) => {
+        if (selectedFinanceScope === "ALL") return true;
+        return (i.scope || "PF") === selectedFinanceScope;
+      });
+
+      if (!items.length) {
+        el.innerHTML = `<div class="empty-state">Nenhuma conta encontrada para o filtro "${escapeHtml(selectedFinanceScope)}".<br/>Use o formulário acima ou diga no chat: <em>"Kyrie, lança conta a pagar de R$ 1.200 do Nu Bank vencendo dia 02/12"</em>.</div>`;
         return;
       }
-      el.innerHTML = fin.items.map((i) => `
+
+      el.innerHTML = items.map((i) => {
+        const isRecur = i.recurrence && i.recurrence !== "unica";
+        const recurLabel = i.recurrence === "mensal" ? "🔁 Mensal" : i.recurrence === "anual" ? "📅 Anual" : i.recurrence === "semanal" ? "⚡ Semanal" : "📌 Única";
+        return `
         <div class="wa-card ${i.effectiveStatus === "atrasado" ? "alta" : i.status === "pago" ? "baixa" : "media"}">
           <div class="wa-head">
-            <span class="wa-sender">${i.kind === "receber" ? "🟢 A Receber" : "🔴 A Pagar"} • ${escapeHtml(i.counterparty)} (${escapeHtml(i.scope)})</span>
+            <span class="wa-sender">${i.kind === "receber" ? "🟢 A Receber" : "🔴 A Pagar"} • ${escapeHtml(i.counterparty)} (${escapeHtml(i.scope || "PF")})</span>
             <div class="wa-tags">
+              <span class="tag ${isRecur ? "gold" : ""}">${recurLabel}</span>
               <span class="tag">${brl(i.amount)}</span>
-              <span class="tag">Venc: ${escapeHtml(i.due_date.split("-").reverse().join("/"))}</span>
-              <span class="tag ${i.effectiveStatus === "atrasado" ? "alta" : ""}">${i.effectiveStatus.toUpperCase()}</span>
+              <span class="tag">Venc: ${escapeHtml((i.due_date || "").split("-").reverse().join("/"))}</span>
+              <span class="tag ${i.effectiveStatus === "atrasado" ? "alta" : i.status === "pago" ? "done" : ""}">${(i.status === "pago" ? "PAGO" : i.effectiveStatus).toUpperCase()}</span>
             </div>
           </div>
-          <div style="font-size:13px;color:var(--muted);">${escapeHtml(i.description)}</div>
-          ${i.status !== "pago" ? `
-            <div class="wa-actions">
+          <div style="font-size:13px;color:var(--muted);margin:4px 0;">${escapeHtml(i.description)}</div>
+          <div class="wa-actions" style="margin-top:6px;">
+            <button class="pill-btn" onclick="openEditFinance('${i.id}')" title="Editar este lançamento">✏️ Editar</button>
+            <button class="pill-btn" onclick="deleteFinance('${i.id}')" style="color:#fda4af;border-color:rgba(239,68,68,0.3);" title="Excluir lançamento">🗑️ Excluir</button>
+            ${i.status !== "pago" ? `
               ${i.kind === "receber" ? `<button class="pill-btn gold" onclick="collectFinance('${i.id}')">💸 Cobrar no WhatsApp</button>` : ""}
               <button class="btn-approve" onclick="payFinance('${i.id}')">✅ Marcar Pago</button>
-            </div>
-          ` : ""}
+            ` : `<span style="font-size:12px;color:var(--accent);">✅ Pago</span>`}
+          </div>
         </div>
-      `).join("");
+      `;
+      }).join("");
     }
 
     async function addFinance(e) {
@@ -997,11 +1143,65 @@
           scope: document.getElementById("finScope").value,
           counterparty: document.getElementById("finCounterparty").value,
           description: document.getElementById("finDesc").value,
+          recurrence: document.getElementById("finRecurrence").value,
           amount: document.getElementById("finAmount").value,
           due_date: document.getElementById("finDue").value,
         }),
       });
       e.target.reset();
+      loadSkillsData();
+    }
+
+    function openEditFinance(id) {
+      const item = (cachedFinance?.items || []).find((i) => i.id === id);
+      if (!item) return;
+      document.getElementById("editFinId").value = item.id;
+      document.getElementById("editFinKind").value = item.kind || "pagar";
+      document.getElementById("editFinScope").value = item.scope || "PF";
+      document.getElementById("editFinCounterparty").value = item.counterparty || "";
+      document.getElementById("editFinDesc").value = item.description || "";
+      document.getElementById("editFinAmount").value = item.amount || "";
+      document.getElementById("editFinRecurrence").value = item.recurrence || "unica";
+      document.getElementById("editFinDue").value = item.due_date || "";
+      document.getElementById("editFinStatus").value = item.status || "pendente";
+      document.getElementById("finEditModal").style.display = "flex";
+    }
+
+    function closeEditFinance() {
+      document.getElementById("finEditModal").style.display = "none";
+    }
+
+    async function saveEditFinance(e) {
+      e.preventDefault();
+      const id = document.getElementById("editFinId").value;
+      const res = await fetch("/api/finance/update", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          kind: document.getElementById("editFinKind").value,
+          scope: document.getElementById("editFinScope").value,
+          counterparty: document.getElementById("editFinCounterparty").value,
+          description: document.getElementById("editFinDesc").value,
+          amount: document.getElementById("editFinAmount").value,
+          recurrence: document.getElementById("editFinRecurrence").value,
+          due_date: document.getElementById("editFinDue").value,
+          status: document.getElementById("editFinStatus").value,
+        }),
+      });
+      if (res.ok) {
+        closeEditFinance();
+        loadSkillsData();
+      } else {
+        alert("Erro ao atualizar lançamento");
+      }
+    }
+
+    async function deleteFinance(id) {
+      if (!confirm("Tem certeza que deseja excluir este lançamento financeiro?")) return;
+      await fetch("/api/finance/delete", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
       loadSkillsData();
     }
 
@@ -1014,6 +1214,70 @@
       await fetch("/api/finance/collect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
       await loadState();
       switchTab("inbox");
+    }
+
+    // ---------- Wealth Advisor & Knowledge Library ----------
+    async function runWealthDiagnosis() {
+      const card = document.getElementById("wealthDiagnosisCard");
+      const body = document.getElementById("wealthDiagnosisBody");
+      card.style.display = "block";
+      body.innerHTML = "<em>💎 Kyrie analisando demonstrativos, fluxo de caixa e cruzando com a biblioteca dos mestres do bilhão...</em>";
+      try {
+        const res = await fetch("/api/wealth/diagnosis", { method: "POST" });
+        const data = await res.json();
+        if (data.diagnosis) {
+          body.innerHTML = renderMarkdownLite(data.diagnosis);
+          speakText("Diagnóstico estratégico de riqueza concluído, Bruno! Apresentei as recomendações de alocação e valuation.", "pt");
+        } else {
+          body.textContent = "Erro ao processar diagnóstico: " + (data.error || "Tente novamente.");
+        }
+      } catch (err) {
+        body.textContent = "Falha de conexão com a assessora: " + err.message;
+      }
+    }
+
+    async function openLibraryModal() {
+      document.getElementById("libraryModal").style.display = "flex";
+      const listEl = document.getElementById("libraryList");
+      listEl.innerHTML = "<em>Carregando livros e playbooks...</em>";
+      try {
+        const res = await fetch("/api/wealth/library");
+        const data = await res.json();
+        const books = data.books || [];
+        document.getElementById("libCount").textContent = books.length;
+        listEl.innerHTML = books.map((b) => `
+          <div style="background:#0b0f14;border:1px solid #243041;border-radius:10px;padding:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <strong style="color:var(--gold);font-size:13.5px;">📖 ${escapeHtml(b.title)}</strong>
+              <span style="font-size:11px;color:var(--muted);">${b.sizeKb} KB</span>
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4;">${escapeHtml(b.excerpt)}...</div>
+          </div>
+        `).join("");
+      } catch (err) {
+        listEl.textContent = "Erro ao carregar biblioteca: " + err.message;
+      }
+    }
+
+    function closeLibraryModal() {
+      document.getElementById("libraryModal").style.display = "none";
+    }
+
+    async function submitNewBook(e) {
+      e.preventDefault();
+      const title = document.getElementById("bookTitle").value;
+      const content = document.getElementById("bookContent").value;
+      const res = await fetch("/api/wealth/library", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, content }),
+      });
+      if (res.ok) {
+        alert("Livro incorporado à biblioteca da Kyrie com sucesso!");
+        e.target.reset();
+        openLibraryModal();
+      } else {
+        alert("Erro ao salvar livro");
+      }
     }
 
     function renderContacts(contacts, birthdays) {
