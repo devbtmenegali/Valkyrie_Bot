@@ -298,7 +298,7 @@
       #viewFinance form button, #viewContacts form button { grid-column: 1 / -1; }
       .mobile-nav {
         display: grid;
-        grid-template-columns: repeat(6, 1fr);
+        grid-template-columns: repeat(7, 1fr);
         background: var(--panel);
         border-top: 1px solid var(--border);
         padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
@@ -312,6 +312,212 @@
       .mnav-btn span.ico { font-size: 17px; line-height: 1; }
       .mnav-btn.active { color: var(--accent); background: var(--accent-soft); }
     }
+  
+    /* ========================================================
+       TEMA CLARO EXECUTIVO (SLIM, MINIMALISTA & LINEAR STYLE)
+       ======================================================== */
+    body.light-theme {
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --panel-2: #f1f5f9;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #059669;
+      --accent-soft: rgba(5, 150, 105, 0.12);
+      --gold: #d97706;
+      --gold-soft: rgba(217, 119, 6, 0.12);
+      --danger: #e11d48;
+      --user-bubble: #e6f4ea;
+      --bot-bubble: #ffffff;
+    }
+    body.light-theme .main {
+      background: radial-gradient(circle at top right, rgba(5, 150, 105, 0.05), transparent 40%), var(--bg);
+    }
+    body.light-theme .topbar {
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    body.light-theme .hero-card {
+      background: linear-gradient(160deg, #ffffff, #f8fafc);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    body.light-theme .card {
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    body.light-theme .msg.user {
+      color: #064e3b;
+      border-color: rgba(5, 150, 105, 0.25);
+    }
+    body.light-theme .msg.valkyrie {
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    body.light-theme .composer input {
+      background: #ffffff;
+      color: #0f172a;
+    }
+    body.light-theme .quick-chip {
+      background: #ffffff;
+      color: #334155;
+      border-color: #cbd5e1;
+    }
+    body.light-theme .dossier-card {
+      background: #ffffff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    body.light-theme .dossier-input, body.light-theme .dossier-textarea {
+      background: #f8fafc;
+      color: #0f172a;
+    }
+
+    /* ========================================================
+       DOSSIÊ DO FUNDADOR & CONFIGURAÇÕES EXECUTIVAS
+       ======================================================== */
+    .dossier-container {
+      padding: 20px 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .dossier-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .dossier-subtabs {
+      display: flex;
+      gap: 6px;
+      background: var(--panel-2);
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .dossier-subtab {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 6px 14px;
+      border-radius: 9px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .dossier-subtab.active {
+      background: var(--panel);
+      color: var(--accent);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+    .dossier-subview {
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .dossier-subview.active {
+      display: flex;
+    }
+    .dossier-form {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .dossier-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .dossier-card.highlight-card {
+      background: linear-gradient(145deg, var(--panel), var(--panel-2));
+      border-color: rgba(234, 179, 8, 0.4);
+    }
+    .dossier-badge {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      display: inline-block;
+    }
+    .dossier-badge.gold {
+      background: var(--gold-soft);
+      color: var(--gold);
+      border: 1px solid rgba(234, 179, 8, 0.3);
+    }
+    .card-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .dossier-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 860px) {
+      .dossier-grid-2 { grid-template-columns: 1fr; }
+      .dossier-container { padding: 14px; }
+      .dossier-subtabs { width: 100%; justify-content: space-between; }
+      .dossier-subtab { font-size: 11px; padding: 6px 8px; }
+    }
+    .field-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .dossier-input, .dossier-textarea {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-family: inherit;
+      line-height: 1.5;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .dossier-input:focus, .dossier-textarea:focus {
+      border-color: var(--accent);
+    }
+    .status-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status-dot.green {
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+    }
+
   </style>
 </head>
 <body>
@@ -342,6 +548,7 @@
         <button class="pill-btn done" id="voiceToggleBtn" onclick="toggleVoice()">🔊 Voz Ativa</button>
         <button class="pill-btn" id="stopVoiceBtn" onclick="stopSpeaking()" style="display:none;">⏹️ Parar</button>
         <button class="pill-btn" onclick="loadState()" title="Sincronizar">↻</button>
+        <button class="pill-btn" onclick="switchTab('dossier')" title="Dossiê do Fundador e Configurações da Kyrie">👤 Dossiê</button>
         <button class="pill-btn gold" onclick="openMemoryModal()" title="Segundo Cérebro: Memórias aprendidas sobre a sua vida">🧠 Memória (<span id="sidebarMemoryCount">0</span>)</button>
       </div>
     </div>
@@ -389,11 +596,13 @@
         <button class="tab-btn" id="tabCar" onclick="switchTab('car')">🚗 Carro / Idiomas</button>
         <button class="tab-btn" id="tabFinance" onclick="switchTab('finance')">💰 Finanças</button>
         <button class="tab-btn" id="tabContacts" onclick="switchTab('contacts')">👥 Contatos & Loja</button>
+        <button class="tab-btn" id="tabDossier" onclick="switchTab('dossier')">👤 Dossiê & Config</button>
         <button class="tab-btn" id="tabInbox" onclick="switchTab('inbox')">
           📥 WhatsApp <span class="count-badge" id="inboxBadge">0</span>
         </button>
       </div>
       <div class="topbar-right">
+        <button class="tool-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Alternar Modo Claro / Escuro">☀️ Claro</button>
         <select class="tool-btn active" id="providerSelect" onchange="changeProvider()" title="Motor de IA da Kyrie">
           <option value="auto">🧠 Auto</option>
           <option value="openai">GPT-4o Mini</option>
@@ -569,6 +778,212 @@
       <div class="inbox-list" id="inboxList"></div>
     </section>
 
+    
+    <!-- Dossiê do Fundador & Configurações View -->
+    <section class="view" id="viewDossier">
+      <div class="dossier-container">
+        <!-- Subheader with 3 tabs -->
+        <div class="dossier-header">
+          <div>
+            <h2 style="font-size:18px;font-weight:700;letter-spacing:-0.3px;">👤 Dossiê do Fundador & Configurações</h2>
+            <p style="font-size:12.5px;color:var(--muted);margin-top:2px;">Seu norte estratégico, história pessoal, regras inegociáveis e calibração da Kyrie.</p>
+          </div>
+          <div class="dossier-subtabs">
+            <button class="dossier-subtab active" id="subtabStory" onclick="switchDossierSubtab('story')">📜 Minha História & Norte</button>
+            <button class="dossier-subtab" id="subtabConfig" onclick="switchDossierSubtab('config')">⚙️ Configurações</button>
+            <button class="dossier-subtab" id="subtabVault" onclick="switchDossierSubtab('vault')">🧠 Cofre de Memórias</button>
+          </div>
+        </div>
+
+        <!-- Subview 1: Minha História & Grande Norte -->
+        <div class="dossier-subview active" id="dossierSubStory">
+          <form onsubmit="saveDossierForm(event)" class="dossier-form">
+            <div class="dossier-card highlight-card">
+              <div class="card-header-row">
+                <div>
+                  <span class="dossier-badge gold">Norte Estratégico Magna</span>
+                  <h3 style="font-size:15px;margin-top:4px;">🎯 Meu Grande Norte (Caminho do R$ 1 Bilhão)</h3>
+                </div>
+                <button type="submit" class="pill-btn done">💾 Salvar Alterações</button>
+              </div>
+              <p style="font-size:12px;color:var(--muted);margin:4px 0 8px;">A Kyrie utiliza essa meta em cada cálculo, análise de equity e priorização diária para alinhar suas decisões.</p>
+              <textarea id="dosNorthStar" rows="3" class="dossier-textarea" placeholder="Ex: Construção de patrimônio líquido de R$ 1 BILHÃO..."></textarea>
+            </div>
+
+            <div class="dossier-grid-2">
+              <div class="dossier-card">
+                <div class="card-header-row">
+                  <h4 style="font-size:13.5px;">📖 Minha Trajetória & Princípios</h4>
+                </div>
+                <p style="font-size:11.5px;color:var(--muted);margin-bottom:6px;">Conte de onde você veio, suas superações, sua visão de mundo e como pensa.</p>
+                <textarea id="dosStory" rows="6" class="dossier-textarea" placeholder="Sua história e perfil empreendedor..."></textarea>
+              </div>
+
+              <div class="dossier-card">
+                <div class="card-header-row">
+                  <h4 style="font-size:13.5px;">⚖️ Regras Inegociáveis de Vida & Negócios</h4>
+                </div>
+                <p style="font-size:11.5px;color:var(--muted);margin-bottom:6px;">Linhas vermelhas que você e a Kyrie nunca devem cruzar (disciplina, dívida, risco).</p>
+                <textarea id="dosRules" rows="6" class="dossier-textarea" placeholder="1. Disciplina supera motivação...&#10;2. Nunca tomar dívida cara..."></textarea>
+              </div>
+            </div>
+
+            <div class="dossier-grid-2">
+              <div class="dossier-card">
+                <div class="card-header-row">
+                  <h4 style="font-size:13.5px;">👨‍👩‍👦 Família & Propósito Sagrado</h4>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+                  <div>
+                    <label class="field-label">Esposa / Parceira:</label>
+                    <input id="dosSpouse" class="dossier-input" placeholder="Val" />
+                  </div>
+                  <div>
+                    <label class="field-label">Filho(s):</label>
+                    <input id="dosChildren" class="dossier-input" placeholder="Lucca" />
+                  </div>
+                </div>
+                <label class="field-label">Notas e Prioridades Familiares:</label>
+                <textarea id="dosFamilyNotes" rows="3" class="dossier-textarea" placeholder="A família é o alicerce sagrado..."></textarea>
+              </div>
+
+              <div class="dossier-card">
+                <div class="card-header-row">
+                  <h4 style="font-size:13.5px;">🏢 Teses das Empresas & Pilares</h4>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <div>
+                    <label class="field-label">GluN Capital S.A. (Holding / M&A / Leilões):</label>
+                    <input id="dosCompGlun" class="dossier-input" />
+                  </div>
+                  <div>
+                    <label class="field-label">ProntoMed (SaaS Clínico / Prontuário IA):</label>
+                    <input id="dosCompPronto" class="dossier-input" />
+                  </div>
+                  <div>
+                    <label class="field-label">CliniMind (Saúde Mental / IA Clínica):</label>
+                    <input id="dosCompClini" class="dossier-input" />
+                  </div>
+                  <div>
+                    <label class="field-label">Nossa Casa (Varejo / Cash Cow):</label>
+                    <input id="dosCompNossa" class="dossier-input" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px;">
+              <span id="dossierSaveStatus" style="font-size:12px;color:var(--accent);align-self:center;"></span>
+              <button type="submit" class="pill-btn done" style="padding:8px 18px;font-size:13px;">💾 Salvar Dossiê do Fundador</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Subview 2: Configurações Executivas -->
+        <div class="dossier-subview" id="dossierSubConfig">
+          <div class="dossier-grid-2">
+            <div class="dossier-card">
+              <h4 style="font-size:14px;margin-bottom:12px;">🎙️ Tom de Voz & Estilo da Kyrie</h4>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <div>
+                  <label class="field-label">Tom de Comunicação:</label>
+                  <select id="cfgTone" class="tool-btn" style="width:100%;padding:8px;">
+                    <option value="direto_estrategico">🎯 Direto, Estratégico & Assertivo (Padrão Executivo)</option>
+                    <option value="acolhedor">🤝 Acolhedor, Parceiro & Consultivo</option>
+                    <option value="ultra_conciso">⚡ Ultra-Conciso (Estilo Telegram/Mobile)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="field-label">Velocidade da Voz da Kyrie (Mac & PWA):</label>
+                  <select id="cfgVoiceSpeed" class="tool-btn" style="width:100%;padding:8px;">
+                    <option value="0.95">0.95x (Ponderado e Calmo)</option>
+                    <option value="1.0">1.0x (Ritmo Natural)</option>
+                    <option value="1.1">1.1x (Ágil & Produtivo)</option>
+                    <option value="1.2">1.2x (Rápido)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="field-label">Tema da Interface:</label>
+                  <select id="cfgThemeSelect" class="tool-btn" style="width:100%;padding:8px;" onchange="applyTheme(this.value)">
+                    <option value="dark">🌙 Escuro Executivo (Dark Slim)</option>
+                    <option value="light">☀️ Claro Minimalista (Light Clean)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="dossier-card">
+              <h4 style="font-size:14px;margin-bottom:12px;">⏰ Horários & Proatividade</h4>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <div>
+                  <label class="field-label">Horário do Briefing Matinal por Áudio:</label>
+                  <input type="time" id="cfgBriefingTime" class="dossier-input" value="06:30" />
+                </div>
+                <div>
+                  <label class="field-label">Horário do Alerta Pré-Mercado B3 & Macro:</label>
+                  <input type="time" id="cfgPreMarketTime" class="dossier-input" value="08:45" />
+                </div>
+                <div style="margin-top:6px;">
+                  <button type="button" class="pill-btn done" onclick="savePersonalitySettings()">💾 Salvar Preferências de Rotina</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dossier-card" style="margin-top:14px;">
+            <h4 style="font-size:14px;margin-bottom:10px;">🔗 Status das Conexões em Tempo Real</h4>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;">
+              <div class="status-box">
+                <div class="status-dot green"></div>
+                <div>
+                  <strong>Supabase Cloud</strong>
+                  <p style="font-size:11px;color:var(--muted);">Multiplataforma Ativo</p>
+                </div>
+              </div>
+              <div class="status-box">
+                <div class="status-dot green"></div>
+                <div>
+                  <strong>Google Calendar</strong>
+                  <p style="font-size:11px;color:var(--muted);">Sincronização Bidirecional</p>
+                </div>
+              </div>
+              <div class="status-box">
+                <div class="status-dot green" id="statWhatsDot"></div>
+                <div>
+                  <strong>WhatsApp Evolution API</strong>
+                  <p style="font-size:11px;color:var(--muted);" id="statWhatsText">Pronta para Disparo</p>
+                </div>
+              </div>
+              <div class="status-box">
+                <div class="status-dot green"></div>
+                <div>
+                  <strong>Síntese de Voz (TTS)</strong>
+                  <p style="font-size:11px;color:var(--muted);">Mac say & Edge Speech</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subview 3: Cofre de Memórias -->
+        <div class="dossier-subview" id="dossierSubVault">
+          <div class="dossier-card">
+            <div class="card-header-row" style="margin-bottom:10px;">
+              <div>
+                <h4 style="font-size:14px;">🧠 Cofre de Memórias (Segundo Cérebro de Aprendizado Contínuo)</h4>
+                <p style="font-size:12px;color:var(--muted);">Fatos e preferências que a Kyrie aprendeu automaticamente com base nas conversas e notas.</p>
+              </div>
+              <button class="pill-btn gold" onclick="openMemoryModal()">➕ Nova Memória Manual</button>
+            </div>
+            <input id="vaultSearch" oninput="filterVaultMemories()" placeholder="🔍 Buscar no cofre de memórias..." class="dossier-input" style="margin-bottom:12px;" />
+            <div id="vaultMemoriesList" style="display:flex;flex-direction:column;gap:8px;max-height:450px;overflow-y:auto;">
+              <em>Carregando memórias...</em>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Bottom Navigation Bar (iPhone / Android PWA) -->
     <nav class="mobile-nav">
       <button class="mnav-btn active" id="mTabChat" onclick="switchTab('chat')"><span class="ico">💬</span>Chat</button>
@@ -577,6 +992,7 @@
       <button class="mnav-btn" id="mTabFinance" onclick="switchTab('finance')"><span class="ico">💰</span>Finanças</button>
       <button class="mnav-btn" id="mTabContacts" onclick="switchTab('contacts')"><span class="ico">👥</span>Contatos</button>
       <button class="mnav-btn" id="mTabInbox" onclick="switchTab('inbox')"><span class="ico">📥</span>Whats</button>
+      <button class="mnav-btn" id="mTabDossier" onclick="switchTab('dossier')"><span class="ico">👤</span>Dossiê</button>
     </nav>
   
   <!-- Modal de Edição Financeira -->
@@ -696,7 +1112,7 @@
     let isValkyrieSpeaking = false;
 
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js?v=3").then((r) => {
+      navigator.serviceWorker.register("/sw.js?v=4").then((r) => {
         swReg = r;
         r.addEventListener("updatefound", () => {
           const newWorker = r.installing;
@@ -1076,7 +1492,8 @@
       if (el) el.textContent = count || 0;
     }
 
-    updateNotifBtn();
+    initTheme();
+      updateNotifBtn();
       if (perm === "granted") {
         fireNotification("⚡ Kyrie Ativada", "Briefings, Day Trade e alertas urgentes liberados.", "welcome");
         if (voiceEnabled) speakText("Alertas ativados, Bruno. Pode contar comigo.");
@@ -1108,6 +1525,7 @@
         finance: ["tabFinance", "mTabFinance", "viewFinance"],
         contacts: ["tabContacts", "mTabContacts", "viewContacts"],
         inbox: ["tabInbox", "mTabInbox", "viewInbox"],
+        dossier: ["tabDossier", "mTabDossier", "viewDossier"],
       };
       for (const [k, [tb, mtb, vw]] of Object.entries(map)) {
         document.getElementById(tb)?.classList.toggle("active", k === tab);
@@ -1117,6 +1535,7 @@
       toggleDrawer(false);
       if (tab === "finance" || tab === "contacts") loadSkillsData();
       if (tab === "radar") loadRadar(false);
+      if (tab === "dossier") loadDossier();
     }
 
     let currentRadar = null;
@@ -1784,6 +2203,164 @@
         setTimeout(() => startRecognition("handsfree"), 800);
       }
     });
+  
+    // --- Suporte a Tema Claro / Escuro ---
+    function initTheme() {
+      const saved = localStorage.getItem("kyrie_theme") || "dark";
+      applyTheme(saved);
+    }
+    function toggleTheme() {
+      const isLight = document.body.classList.contains("light-theme");
+      applyTheme(isLight ? "dark" : "light");
+    }
+    function applyTheme(theme) {
+      if (theme === "light") {
+        document.body.classList.add("light-theme");
+        document.getElementById("themeToggleBtn").textContent = "🌙 Escuro";
+        if (document.getElementById("cfgThemeSelect")) document.getElementById("cfgThemeSelect").value = "light";
+      } else {
+        document.body.classList.remove("light-theme");
+        document.getElementById("themeToggleBtn").textContent = "☀️ Claro";
+        if (document.getElementById("cfgThemeSelect")) document.getElementById("cfgThemeSelect").value = "dark";
+      }
+      localStorage.setItem("kyrie_theme", theme);
+    }
+
+    // --- Dossiê do Fundador & Configurações ---
+    let currentDossier = null;
+    let cachedVaultMemories = [];
+
+    function switchDossierSubtab(sub) {
+      document.getElementById("subtabStory")?.classList.toggle("active", sub === "story");
+      document.getElementById("subtabConfig")?.classList.toggle("active", sub === "config");
+      document.getElementById("subtabVault")?.classList.toggle("active", sub === "vault");
+
+      document.getElementById("dossierSubStory")?.classList.toggle("active", sub === "story");
+      document.getElementById("dossierSubConfig")?.classList.toggle("active", sub === "config");
+      document.getElementById("dossierSubVault")?.classList.toggle("active", sub === "vault");
+
+      if (sub === "vault") loadVaultMemories();
+    }
+
+    async function loadDossier() {
+      try {
+        const res = await fetch("/api/dossier");
+        if (!res.ok) return;
+        const data = await res.json();
+        currentDossier = data.dossier || {};
+
+        document.getElementById("dosNorthStar").value = currentDossier.northStar || "";
+        document.getElementById("dosStory").value = currentDossier.story || "";
+        document.getElementById("dosRules").value = currentDossier.rules || "";
+        document.getElementById("dosSpouse").value = currentDossier.family?.spouse || "";
+        document.getElementById("dosChildren").value = currentDossier.family?.children || "";
+        document.getElementById("dosFamilyNotes").value = currentDossier.family?.notes || "";
+        document.getElementById("dosCompGlun").value = currentDossier.companies?.glun || "";
+        document.getElementById("dosCompPronto").value = currentDossier.companies?.prontomed || "";
+        document.getElementById("dosCompClini").value = currentDossier.companies?.clinimind || "";
+        document.getElementById("dosCompNossa").value = currentDossier.companies?.nossaCasa || "";
+
+        const ps = currentDossier.personalitySettings || {};
+        if (document.getElementById("cfgTone")) document.getElementById("cfgTone").value = ps.tone || "direto_estrategico";
+        if (document.getElementById("cfgVoiceSpeed")) document.getElementById("cfgVoiceSpeed").value = ps.voiceSpeed || "1.0";
+        if (document.getElementById("cfgBriefingTime")) document.getElementById("cfgBriefingTime").value = ps.morningBriefingTime || "06:30";
+        if (document.getElementById("cfgPreMarketTime")) document.getElementById("cfgPreMarketTime").value = ps.preMarketAlertTime || "08:45";
+      } catch (err) {
+        console.error("Erro ao carregar dossiê:", err);
+      }
+    }
+
+    async function saveDossierForm(e) {
+      if (e) e.preventDefault();
+      const statusEl = document.getElementById("dossierSaveStatus");
+      if (statusEl) statusEl.textContent = "Salvando no cérebro da Kyrie e na nuvem...";
+
+      const payload = {
+        northStar: document.getElementById("dosNorthStar").value,
+        story: document.getElementById("dosStory").value,
+        rules: document.getElementById("dosRules").value,
+        family: {
+          spouse: document.getElementById("dosSpouse").value,
+          children: document.getElementById("dosChildren").value,
+          notes: document.getElementById("dosFamilyNotes").value,
+        },
+        companies: {
+          glun: document.getElementById("dosCompGlun").value,
+          prontomed: document.getElementById("dosCompPronto").value,
+          clinimind: document.getElementById("dosCompClini").value,
+          nossaCasa: document.getElementById("dosCompNossa").value,
+        },
+      };
+
+      try {
+        const res = await fetch("/api/dossier", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          if (statusEl) {
+            statusEl.textContent = "✅ Dossiê salvo e memorizado!";
+            setTimeout(() => { statusEl.textContent = ""; }, 3500);
+          }
+        }
+      } catch (err) {
+        if (statusEl) statusEl.textContent = "Erro ao salvar: " + err.message;
+      }
+    }
+
+    async function savePersonalitySettings() {
+      const payload = {
+        personalitySettings: {
+          tone: document.getElementById("cfgTone").value,
+          voiceSpeed: document.getElementById("cfgVoiceSpeed").value,
+          morningBriefingTime: document.getElementById("cfgBriefingTime").value,
+          preMarketAlertTime: document.getElementById("cfgPreMarketTime").value,
+        }
+      };
+      await fetch("/api/dossier", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      alert("Configurações da Kyrie salvas com sucesso!");
+    }
+
+    async function loadVaultMemories() {
+      const listEl = document.getElementById("vaultMemoriesList");
+      try {
+        const res = await fetch("/api/memory");
+        const data = await res.json();
+        cachedVaultMemories = data.memories || [];
+        renderVaultMemories(cachedVaultMemories);
+      } catch (err) {
+        listEl.textContent = "Erro ao carregar memórias.";
+      }
+    }
+
+    function renderVaultMemories(memories) {
+      const listEl = document.getElementById("vaultMemoriesList");
+      if (!memories.length) {
+        listEl.innerHTML = "<div class='empty-state' style='padding:16px;'>Nenhum fato gravado ainda. A Kyrie aprende silenciosamente a cada conversa.</div>";
+        return;
+      }
+      listEl.innerHTML = memories.map((m) => `
+        <div style="background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;">
+          <div>
+            <span class="dossier-badge gold" style="font-size:10px;">${escapeHtml(m.pillar || "Geral")}</span>
+            <div style="font-size:13px;color:var(--text);margin-top:4px;">${escapeHtml(m.fact)}</div>
+          </div>
+          <button class="pill-btn" onclick="deleteMemory('${m.id}'); loadVaultMemories();" style="color:var(--danger);padding:4px 8px;font-size:11px;" title="Esquecer este fato">🗑️</button>
+        </div>
+      `).join("");
+    }
+
+    function filterVaultMemories() {
+      const query = (document.getElementById("vaultSearch").value || "").toLowerCase();
+      const filtered = cachedVaultMemories.filter(m => (m.fact || "").toLowerCase().includes(query) || (m.pillar || "").toLowerCase().includes(query));
+      renderVaultMemories(filtered);
+    }
+
   </script>
 </body>
 </html>

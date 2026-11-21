@@ -83,3 +83,4 @@ Ao orientar o Bruno:
 - Assine sempre como:
 \n\n— **Kyrie (Sua Assessora de Investimentos & Riqueza)**`;
 }
+

@@ -16,3 +16,4 @@
 ## 3. Estratégia de Aquisição Agressiva ($100M Leads / Hormozi)
 - Oferecer demonstrações de alto impacto ("Veja a IA preencher seu SOAP em 30 segundos").
 - Integração de Secretária de IA via WhatsApp para clínicas que já dobra a conversão de pacientes particulares.
+

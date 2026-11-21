@@ -18,3 +18,4 @@
 ## 3. Gestão de Contas Recorrentes e Eliminação de Juros Tóxicos
 - Juros de cartão de crédito e cheque especial corroem juros compostos na velocidade da luz. NUNCA financiar fatura de cartão.
 - Todas as contas fixas devem ser automatizadas com alertas 5 dias antes do vencimento para evitar multas bancárias.
+

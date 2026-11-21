@@ -18,3 +18,4 @@
 ## 4. O Ciclo Econômico e Preservação de Riqueza (Ray Dalio)
 - Entenda onde estamos no ciclo de crédito: juros altos beneficiam quem tem caixa limpo e punem quem está alavancado com dívida bancária.
 - Quem tem caixa compra ativos estressados no fundo do poço.
+

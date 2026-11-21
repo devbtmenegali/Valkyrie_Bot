@@ -11,3 +11,7 @@ app/radar-cache.json
 Valkyrie.app/
 .DS_Store
 node_modules/
+
+app/uploads/*
+!app/uploads/.gitkeep
+scratch/

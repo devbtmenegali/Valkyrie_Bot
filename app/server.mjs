@@ -18,6 +18,7 @@ import { listContacts, upsertContact, getUpcomingBirthdays, buildSupplierMessage
 import { listFinance, addFinanceEntry, updateFinanceEntry, deleteFinanceEntry, markFinancePaid, getFinanceSummary, buildCollectionMessage } from "./skills/finance.mjs";
 import { listLibraryBooks, addLibraryBook, buildWealthSystemPrompt } from "./skills/wealth.mjs";
 import { processIncomingFile } from "./files.mjs";
+import { loadFounderDossier, saveFounderDossier } from "./dossier.mjs";
 import { LANGUAGE_VOICES, getLanguageCoachPrompt, listLanguageSessions, logLanguageSession } from "./skills/languages.mjs";
 import { fetchLiveNews, loadCachedRadar, saveCachedRadar, buildRadarPrompt } from "./skills/radar.mjs";
 import { macOpenApp, macOpenUrl, macSearchFiles, macOpenFile, macSystemControl } from "./skills/mac.mjs";
@@ -1444,6 +1445,17 @@ Seja cirúrgica, inspiradora, matematicamente sólida e orientada a patrimônio 
     const body = await readJsonBody(req);
     deleteMemoryFact(MEMORY_PATH, body.id);
     return sendJson(res, 200, { ok: true, memories: loadMemoryFacts(MEMORY_PATH) });
+  }
+
+  // ---------- Dossiê do Fundador & Configurações da Kyrie ----------
+  if (req.method === "GET" && url.pathname === "/api/dossier") {
+    return sendJson(res, 200, { ok: true, dossier: loadFounderDossier(__dirname) });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/dossier") {
+    const body = await readJsonBody(req);
+    const updated = await saveFounderDossier(__dirname, body);
+    return sendJson(res, 200, { ok: true, dossier: updated });
   }
 
   // ---------- Processamento Inteligente de Arquivos (PDF, Imagens, Documentos, Livros, Skills) ----------

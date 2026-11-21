@@ -1,5 +1,5 @@
 // Kyrie PWA Service Worker (v3 - Branding & Real-time Update)
-const CACHE_NAME = "kyrie-pwa-v3";
+const CACHE_NAME = "kyrie-pwa-v4";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

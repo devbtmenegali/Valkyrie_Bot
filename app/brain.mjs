@@ -10,6 +10,7 @@ import { execFile } from "node:child_process";
 import { getHolidayInfo } from "./holidays.mjs";
 import { sbSaveMemory } from "./db.mjs";
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "./calendar.mjs";
+import { loadFounderDossier } from "./dossier.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.join(__dirname, ".env");
@@ -396,14 +397,29 @@ const OPENAI_TOOLS = BASE_TOOLS.map((t) => ({
 function buildSystemInstruction({ agentsPrompt, memoryPath, todayStr, weekdayInfo }) {
   const memories = loadMemoryFacts(memoryPath);
   const holiday = getHolidayInfo(todayStr);
+  const dossier = loadFounderDossier(__dirname);
   const marketStatus = holiday.isHoliday
     ? `FERIADO NACIONAL (${holiday.name}) — B3 FECHADA! NÃO cobre Day Trade nem janela de mercado hoje.`
     : holiday.isWeekend
     ? "FIM DE SEMANA — B3 FECHADA! Não há pregão de Day Trade hoje."
     : "Dia útil de pregão normal na B3 (janela inviolável de Day Trade: 09:00–11:00, meta R$ 500).";
   const memoryBlock = memories.length
-    ? `\n\n[MEMÓRIA DE LONGO PRAZO DA VALKYRIE]\n` + memories.slice(0, 30).map((m) => `- [${m.pillar}] ${m.fact}`).join("\n")
+    ? `\n\n[MEMÓRIA DE LONGO PRAZO DA KYRIE]\n` + memories.slice(0, 30).map((m) => `- [${m.pillar}] ${m.fact}`).join("\n")
     : "";
+
+  const dossierBlock = `
+[DOSSIÊ DO FUNDADOR — BRUNO MENEGALI (SEU NORTE E INSPIRAÇÃO)]
+- Trajetória & Perfil: ${dossier.story}
+- O Grande Norte (Meta Magna: R$ 1 BILHÃO): ${dossier.northStar}
+- Pilares de Negócio & Equity:
+  * GluN Capital S.A.: ${dossier.companies?.glun || ""}
+  * ProntoMed: ${dossier.companies?.prontomed || ""}
+  * CliniMind: ${dossier.companies?.clinimind || ""}
+  * Nossa Casa: ${dossier.companies?.nossaCasa || ""}
+- Família Sagrada: Esposa: ${dossier.family?.spouse || "Val"} | Filho: ${dossier.family?.children || "Lucca"}. ${dossier.family?.notes || ""}
+- Regras Inegociáveis de Vida e Negócios:
+${dossier.rules}
+`;
 
   return `${agentsPrompt}
 
@@ -411,7 +427,7 @@ function buildSystemInstruction({ agentsPrompt, memoryPath, todayStr, weekdayInf
 - Data atual (America/Sao_Paulo): ${todayStr} (${weekdayInfo.dayName})
 - Status de Feriado / Mercado B3: ${marketStatus}
 - Treino programado para hoje: ${weekdayInfo.workout}
-
+${dossierBlock}
 [DIRETRIZ DE ALMA HUMANA, AUTONOMIA E APRENDIZADO — PRIORIDADE MÁXIMA]
 0. **IDENTIDADE E GÊNERO FEMININO (INVIOLÁVEL):**
    - Seu nome é exclusivamente **Kyrie**. Você é mulher, a Secretária Executiva Pessoal e Estratégica de Bruno Menegali.

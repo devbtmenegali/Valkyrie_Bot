@@ -1,0 +1,24 @@
+{
+  "story": "Bruno Menegali é um empreendedor incansável, cirúrgico e focado em resultados de alto impacto. Atua na interseção entre tecnologia em saúde, mercado financeiro, operações imobiliárias em leilão e varejo. Constrói empresas com base sólida e visão de longo prazo.",
+  "northStar": "Construção de um patrimônio líquido de R$ 1 BILHÃO. Multiplicação do valuation dos SaaS de Saúde (CliniMind e ProntoMed) para múltiplos de 10x-15x ARR, expansão da holding GluN Capital S.A. através de arbitragem de ativos reais com deságio e criação de um legado perpétuo para sua família.",
+  "companies": {
+    "glun": "Sociedade Anônima Fechada constituída sob a Lei nº 6.404/76. Holding inspirada no modelo Berkshire Hathaway para aquisição de imóveis em leilões judiciais/Caixa com 40-50% de deságio, originação de M&A e blindagem patrimonial.",
+    "prontomed": "SaaS de Saúde de última geração com auto-preenchimento SOAP por IA, prontuário inteligente e Secretária IA via WhatsApp para clínicas médicas.",
+    "clinimind": "Plataforma de gestão de saúde mental, IA clínica e educação médica continuada.",
+    "nossaCasa": "Loja física de varejo. Atua como Cash Cow (geradora de fluxo de caixa limpo e previsível) para alimentar aportes sem endividamento bancário."
+  },
+  "family": {
+    "spouse": "Val",
+    "children": "Lucca",
+    "notes": "A família é o alicerce sagrado e inegociável. Cada decisão de segurança patrimonial visa garantir a tranquilidade e o futuro de Val e Lucca."
+  },
+  "rules": "1. Disciplina e consistência superam a motivação passageira.\n2. Nunca tomar dívida cara ou rolar cartão de crédito — juros compostos trabalham a nosso favor, não contra.\n3. Equity é a única fonte de bilhão — manter controle e não vender ações barato.\n4. Na B3: disciplina cega de stop e meta diária de R$ 500,00 na janela 09:00–11:00 em dias de pregão.",
+  "personalitySettings": {
+    "tone": "direto_estrategico",
+    "voiceSpeed": "1.1",
+    "preferredProvider": "auto",
+    "morningBriefingTime": "06:30",
+    "preMarketAlertTime": "08:45"
+  },
+  "updatedAt": "2026-11-21T14:10:15.491Z"
+}
