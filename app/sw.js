@@ -1,28 +1,36 @@
-// Valkyrie PWA Service Worker
-const CACHE_NAME = "valkyrie-pwa-v1";
+// Kyrie PWA Service Worker (v3 - Branding & Real-time Update)
+const CACHE_NAME = "kyrie-pwa-v3";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((k) => {
+          if (k !== CACHE_NAME) return caches.delete(k);
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
 });
 
 // Suporte a Web Push (quando publicado em HTTPS para iOS/Android)
 self.addEventListener("push", (event) => {
-  let payload = { title: "Valkyrie", body: "Nova atualização executiva." };
+  let payload = { title: "Kyrie", body: "Nova atualização executiva." };
   try {
     if (event.data) payload = event.data.json();
   } catch {
     if (event.data) payload.body = event.data.text();
   }
   event.waitUntil(
-    self.registration.showNotification(payload.title || "Valkyrie", {
+    self.registration.showNotification(payload.title || "Kyrie", {
       body: payload.body || "",
       icon: "/icon.svg",
       badge: "/icon.svg",
-      tag: payload.tag || "valkyrie-alert",
+      tag: payload.tag || "kyrie-alert",
       data: { url: payload.url || "/" },
     })
   );
@@ -40,4 +48,3 @@ self.addEventListener("notificationclick", (event) => {
     })
   );
 });
-

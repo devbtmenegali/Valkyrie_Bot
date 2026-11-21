@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#0b0f14" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Valkyrie" />
+  <meta name="apple-mobile-web-app-title" content="Kyrie" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" type="image/jpeg" href="/avatar.jpg?v=viking" />
   <link rel="apple-touch-icon" href="/avatar.jpg?v=viking" />
-  <title>Valkyrie — Secretária Executiva</title>
+  <title>Kyrie — Secretária Executiva</title>
   <style>
     :root {
       --bg: #0b0f14;
@@ -317,9 +317,9 @@
 <body>
   <div id="lockOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(7,10,15,0.96);backdrop-filter:blur(12px);align-items:center;justify-content:center;">
     <form onsubmit="submitPin(event)" style="background:#121821;border:1px solid #243041;border-radius:18px;padding:28px;width:320px;text-align:center;display:flex;flex-direction:column;gap:14px;">
-      <img src="/avatar.jpg?v=viking" alt="Valkyrie" style="width:84px;height:84px;border-radius:50%;object-fit:cover;margin:0 auto;border:2px solid #10b981;" />
+      <img src="/avatar.jpg?v=viking" alt="Kyrie" style="width:84px;height:84px;border-radius:50%;object-fit:cover;margin:0 auto;border:2px solid #10b981;" />
       <div>
-        <div style="font-size:17px;font-weight:700;">VALKYRIE</div>
+        <div style="font-size:17px;font-weight:700;">KYRIE</div>
         <div style="font-size:12px;color:#8fa0b5;margin-top:3px;">Acesso Privado — Bruno Menegali</div>
       </div>
       <input id="pinInput" type="password" placeholder="Digite seu PIN de acesso" autocomplete="current-password" style="background:#0b0f14;border:1px solid #243041;color:#e8edf4;padding:11px 14px;border-radius:10px;font-size:14px;text-align:center;outline:none;" />
@@ -332,10 +332,10 @@
   <aside class="sidebar" id="sidebarPanel">
     <div class="hero-card">
       <div class="avatar-ring" id="avatarRing">
-        <img src="/avatar.jpg?v=viking" alt="Valkyrie" />
+        <img src="/avatar.jpg?v=viking" alt="Kyrie" />
       </div>
       <div>
-        <div class="hero-name">VALKYRIE</div>
+        <div class="hero-name">KYRIE</div>
         <div class="hero-status" id="heroStatus"><span class="dot"></span> Pronta para você, Bruno</div>
       </div>
       <div class="hero-controls">
@@ -393,7 +393,7 @@
         </button>
       </div>
       <div class="topbar-right">
-        <select class="tool-btn active" id="providerSelect" onchange="changeProvider()" title="Motor de IA da Valkyrie">
+        <select class="tool-btn active" id="providerSelect" onchange="changeProvider()" title="Motor de IA da Kyrie">
           <option value="auto">🧠 Auto</option>
           <option value="openai">GPT-4o Mini</option>
           <option value="mistral">Mistral</option>
@@ -426,8 +426,8 @@
         <button class="quick-chip" onclick="sendQuick('/trade 500')">📈 Meta R$ 500</button>
       </div>
       <form class="composer" onsubmit="handleSend(event)">
-        <button type="button" class="mic-btn" id="micBtn" onclick="toggleSingleMic()" title="Falar com a Valkyrie">🎙️</button>
-        <input id="chatInput" type="text" placeholder="Digite ou clique no 🎙️ para falar com a Valkyrie..." autocomplete="off" />
+        <button type="button" class="mic-btn" id="micBtn" onclick="toggleSingleMic()" title="Falar com a Kyrie">🎙️</button>
+        <input id="chatInput" type="text" placeholder="Digite ou clique no 🎙️ para falar com a Kyrie..." autocomplete="off" />
         <button type="submit" class="send-btn">Enviar</button>
       </form>
     </section>
@@ -437,7 +437,7 @@
       <div style="padding:16px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
           <div>
-            <strong style="font-size:15px;">📡 Radar Estratégico da Valkyrie</strong>
+            <strong style="font-size:15px;">📡 Radar Estratégico da Kyrie</strong>
             <div style="font-size:12px;color:var(--muted);" id="radarMeta">Notícias ao vivo, oportunidades de investimento, ideias de negócio e melhores práticas</div>
           </div>
           <div style="display:flex;gap:8px;">
@@ -445,7 +445,7 @@
             <button class="pill-btn done" onclick="loadRadar(true)">🔄 Atualizar Agora</button>
           </div>
         </div>
-        <div class="card" style="padding:16px;font-size:14px;line-height:1.55;white-space:pre-wrap;" id="radarBriefing">Clique em "🔄 Atualizar Agora" para a Valkyrie ler as notícias de hoje e gerar suas oportunidades...</div>
+        <div class="card" style="padding:16px;font-size:14px;line-height:1.55;white-space:pre-wrap;" id="radarBriefing">Clique em "🔄 Atualizar Agora" para a Kyrie ler as notícias de hoje e gerar suas oportunidades...</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="pill-btn done" onclick="radarFeedback('like')">👍 Gostei (Aprender)</button>
           <button class="pill-btn gold" onclick="radarFeedback('kanban')">🚀 Salvar Ideia no Kanban</button>
@@ -469,7 +469,7 @@
           <span id="carMicLabel">Tocar e Falar</span>
         </button>
         <div id="carTranscript" style="max-width:600px;width:100%;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px;font-size:14px;line-height:1.5;min-height:84px;text-align:left;">
-          Escolha <strong>🇺🇸 Inglês</strong> ou <strong>🇪🇸 Espanhol</strong> e toque no botão grande para conversar com a Valkyrie no carro (ou toque em <strong>🎙️ Rádio Briefing 60s</strong>).
+          Escolha <strong>🇺🇸 Inglês</strong> ou <strong>🇪🇸 Espanhol</strong> e toque no botão grande para conversar com a Kyrie no carro (ou toque em <strong>🎙️ Rádio Briefing 60s</strong>).
         </div>
         <div style="display:flex;gap:8px;">
           <button class="pill-btn" onclick="startCarIntro()">▶️ Iniciar Conversa</button>
@@ -544,7 +544,19 @@
     let isValkyrieSpeaking = false;
 
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").then((r) => { swReg = r; }).catch(() => {});
+      navigator.serviceWorker.register("/sw.js?v=3").then((r) => {
+        swReg = r;
+        r.addEventListener("updatefound", () => {
+          const newWorker = r.installing;
+          if (newWorker) {
+            newWorker.addEventListener("statechange", () => {
+              if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                window.location.reload();
+              }
+            });
+          }
+        });
+      }).catch(() => {});
     }
 
     function setAvatarState(mode, label) {
@@ -635,12 +647,12 @@
       setAvatarState("idle");
     }
 
-    // ---------- Speech Recognition (Microfone + Wake-word "Valkyrie") ----------
+    // ---------- Speech Recognition (Microfone + Wake-word "Kyrie") ----------
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     function startRecognition(mode) {
       if (!SpeechRecognition) {
-        alert("Seu navegador não suporta reconhecimento de voz. Abra pelo Valkyrie.app (Chrome) para usar o microfone.");
+        alert("Seu navegador não suporta reconhecimento de voz. Abra pelo Kyrie.app (Chrome) para usar o microfone.");
         return;
       }
       stopSpeaking();
@@ -656,10 +668,10 @@
       banner.classList.add("show");
       document.getElementById("micBtn").classList.toggle("active", mode === "single");
       document.getElementById("handsFreeBtn").classList.toggle("listening", mode === "handsfree");
-      setAvatarState("listening", mode === "handsfree" ? 'Mãos livres ("Valkyrie...")' : "Ouvindo você...");
+      setAvatarState("listening", mode === "handsfree" ? 'Mãos livres ("Kyrie...")' : "Ouvindo você...");
 
       bannerText.textContent = mode === "handsfree"
-        ? '🎧 Mãos livres ativo — diga "Valkyrie" seguido do comando...'
+        ? '🎧 Mãos livres ativo — diga "Kyrie" seguido do comando...'
         : "🎙️ Pode falar agora em português...";
 
       recognition.onresult = (event) => {
@@ -674,7 +686,7 @@
             sendText(transcript);
           } else if (mode === "handsfree") {
             // Aceita "Valkyrie", "Valquíria", "Valquiria", "Valkíria", "Valquírie", etc.
-            const match = transcript.match(/val\s*(?:qu|k)[iyí]ri[ae]s?\s*[,:-]?\s*(.*)/i);
+            const match = transcript.match(/(?:kyrie|quírie|kiri[ae]|val\s*(?:qu|k)[iyí]ri[ae]s?)\s*[,:-]?\s*(.*)/i);
             const inFollowUp = Date.now() < followUpUntil;
 
             if (match) {
@@ -765,14 +777,14 @@
     async function enableNotifications() {
       if (!("Notification" in window)) return;
       if (Notification.permission === "granted") {
-        fireNotification("⚡ Valkyrie", "Alertas e voz configurados!", "test");
+        fireNotification("⚡ Kyrie", "Alertas e voz configurados!", "test");
         if (voiceEnabled) speakText("Bruno, seus alertas e a minha voz estão funcionando perfeitamente.");
         return;
       }
       const perm = await Notification.requestPermission();
       updateNotifBtn();
       if (perm === "granted") {
-        fireNotification("⚡ Valkyrie Ativada", "Briefings, Day Trade e alertas urgentes liberados.", "welcome");
+        fireNotification("⚡ Kyrie Ativada", "Briefings, Day Trade e alertas urgentes liberados.", "welcome");
         if (voiceEnabled) speakText("Alertas ativados, Bruno. Pode contar comigo.");
       }
     }
@@ -815,7 +827,7 @@
 
     let currentRadar = null;
     async function loadRadar(force = false) {
-      document.getElementById("radarBriefing").innerHTML = "<em>📡 Valkyrie lendo manchetes de mercado, imóveis, healthtech e varejo...</em>";
+      document.getElementById("radarBriefing").innerHTML = "<em>📡 Kyrie lendo manchetes de mercado, imóveis, healthtech e varejo...</em>";
       const res = await fetch(force ? "/api/radar/refresh" : "/api/radar", { method: force ? "POST" : "GET" });
       if (!res.ok) return;
       currentRadar = await res.json();
@@ -837,7 +849,7 @@
     async function radarFeedback(action) {
       const note = action === "kanban"
         ? prompt("Qual ideia/oportunidade do Radar você quer transformar em tarefa no Kanban?", (currentRadar?.briefing || "").slice(0, 120))
-        : prompt(action === "like" ? "Qual tema ou insight você gostou para a Valkyrie aprender?" : "O que você prefere ver menos no Radar?", "Oportunidades de investimento e negócios");
+        : prompt(action === "like" ? "Qual tema ou insight você gostou para a Kyrie aprender?" : "O que você prefere ver menos no Radar?", "Oportunidades de investimento e negócios");
       if (!note) return;
       const res = await fetch("/api/radar/feedback", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -881,13 +893,13 @@
 
     async function sendCarText(text) {
       ensureCarTimer();
-      document.getElementById("carTranscript").innerHTML = `<em>Valkyrie pensando...</em>`;
+      document.getElementById("carTranscript").innerHTML = `<em>Kyrie pensando...</em>`;
       const res = await fetch("/api/car/talk", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: carLang, text }),
       });
       const data = await res.json();
-      document.getElementById("carTranscript").innerHTML = `<strong>Valkyrie (${carLang.toUpperCase()}):</strong><br/>${escapeHtml(data.reply || "")}`;
+      document.getElementById("carTranscript").innerHTML = `<strong>Kyrie (${carLang.toUpperCase()}):</strong><br/>${escapeHtml(data.reply || "")}`;
       if (currentState?.isCloud && data.reply) speakText(data.reply, data.lang, data.voice);
     }
 
@@ -901,7 +913,7 @@
         body: JSON.stringify({ mode: "radio" }),
       });
       const data = await res.json();
-      document.getElementById("carTranscript").innerHTML = `<strong>🎙️ Rádio Valkyrie:</strong><br/>${escapeHtml(data.reply || "")}`;
+      document.getElementById("carTranscript").innerHTML = `<strong>🎙️ Rádio Kyrie:</strong><br/>${escapeHtml(data.reply || "")}`;
       if (currentState?.isCloud && data.reply) speakText(data.reply, "pt", data.voice);
     }
 
@@ -1044,7 +1056,7 @@
     }
 
     async function messageContact(id, category) {
-      const subject = prompt(category === "fornecedor" ? "O que a Valkyrie deve perguntar/cobrar deste fornecedor da Nossa Casa?" : "Qual mensagem a Valkyrie deve preparar?", "");
+      const subject = prompt(category === "fornecedor" ? "O que a Kyrie deve perguntar/cobrar deste fornecedor da Nossa Casa?" : "Qual mensagem a Kyrie deve preparar?", "");
       if (subject === null) return;
       await fetch("/api/contacts/message", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -1080,7 +1092,7 @@
       const el = document.getElementById("inboxList");
       const visible = (inbox || []).filter((i) => i.status !== "dismissed");
       if (!visible.length) {
-        el.innerHTML = `<div class="empty-state">📥 Nenhuma mensagem pendente.<br/>Clique em <strong>🧪 Simular Mensagem + Voz</strong> para ver a Valkyrie filtrar, falar o alerta e preparar o rascunho!</div>`;
+        el.innerHTML = `<div class="empty-state">📥 Nenhuma mensagem pendente.<br/>Clique em <strong>🧪 Simular Mensagem + Voz</strong> para ver a Kyrie filtrar, falar o alerta e preparar o rascunho!</div>`;
         return;
       }
 
@@ -1098,7 +1110,7 @@
           ${item.status === "sent"
             ? `<div class="wa-sent-note">✅ ${escapeHtml(item.deliveryNote)} (${item.sentAt}): "${escapeHtml(item.sentReply)}"</div>`
             : `
-              <div class="wa-draft-label">✨ Resposta sugerida pela Valkyrie:</div>
+              <div class="wa-draft-label">✨ Resposta sugerida pela Kyrie:</div>
               <textarea class="wa-draft" id="draft-${item.id}">${escapeHtml(item.draftReply)}</textarea>
               <div class="wa-actions">
                 <button class="btn-dismiss" onclick="dismissInbox('${item.id}')">Arquivar</button>
@@ -1161,7 +1173,7 @@
       const mEl = document.getElementById("messages");
       mEl.innerHTML = (s.history || []).map((m, idx) => `
         <div class="msg-row ${m.role}">
-          ${m.role === "valkyrie" ? `<img class="msg-avatar" src="/avatar.jpg?v=viking" alt="Valkyrie" />` : ""}
+          ${m.role === "valkyrie" ? `<img class="msg-avatar" src="/avatar.jpg?v=viking" alt="Kyrie" />` : ""}
           <div class="msg ${m.role}">
             ${renderMarkdownLite(m.text)}
             ${m.tools && m.tools.length ? `<div style="margin-top:6px;font-size:10.5px;color:var(--accent);">⚡ Ações: ${escapeHtml(m.tools.join(", "))}</div>` : ""}
