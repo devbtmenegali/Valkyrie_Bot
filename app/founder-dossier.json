@@ -1,16 +1,53 @@
 {
   "story": "Bruno Menegali é um empreendedor incansável, cirúrgico e focado em resultados de alto impacto. Atua na interseção entre tecnologia em saúde, mercado financeiro, operações imobiliárias em leilão e varejo. Constrói empresas com base sólida e visão de longo prazo.",
   "northStar": "Construção de um patrimônio líquido de R$ 1 BILHÃO. Multiplicação do valuation dos SaaS de Saúde (CliniMind e ProntoMed) para múltiplos de 10x-15x ARR, expansão da holding GluN Capital S.A. através de arbitragem de ativos reais com deságio e criação de um legado perpétuo para sua família.",
+  "projects": [
+    {
+      "id": "proj-glun",
+      "name": "GluN Capital S.A.",
+      "pillar": "Holding & Imobiliário",
+      "thesis": "Sociedade Anônima Fechada constituída sob a Lei nº 6.404/76. Holding inspirada no modelo Berkshire Hathaway para aquisição de imóveis em leilões judiciais/Caixa com 40-50% de deságio, originação de M&A e blindagem patrimonial."
+    },
+    {
+      "id": "proj-prontomed",
+      "name": "ProntoMed",
+      "pillar": "HealthTech SaaS",
+      "thesis": "SaaS de Saúde de última geração com auto-preenchimento SOAP por IA, prontuário inteligente e Secretária IA via WhatsApp para clínicas médicas e Telemedicina."
+    },
+    {
+      "id": "proj-clinimind",
+      "name": "CliniMind",
+      "pillar": "Saúde Mental & IA Clínica",
+      "thesis": "Plataforma de gestão de saúde mental, IA para estudos e apoio clínico aos estudantes de medicina e médicos."
+    },
+    {
+      "id": "proj-nossacasa",
+      "name": "Nossa Casa",
+      "pillar": "Varejo & Cash Cow",
+      "thesis": "Loja física de varejo. Atua como Cash Cow (geradora de fluxo de caixa limpo e previsível) para alimentar aportes sem endividamento bancário."
+    }
+  ],
   "companies": {
     "glun": "Sociedade Anônima Fechada constituída sob a Lei nº 6.404/76. Holding inspirada no modelo Berkshire Hathaway para aquisição de imóveis em leilões judiciais/Caixa com 40-50% de deságio, originação de M&A e blindagem patrimonial.",
     "prontomed": "SaaS de Saúde de última geração com auto-preenchimento SOAP por IA, prontuário inteligente e Secretária IA via WhatsApp para clínicas médicas e Telemedicina.",
-    "clinimind": "Plataforma de IA para Estudos e Apoio Clínico aos Estudantes de Medicina e Médicos.",
+    "clinimind": "Plataforma de gestão de saúde mental, IA para estudos e apoio clínico aos estudantes de medicina e médicos.",
     "nossaCasa": "Loja física de varejo. Atua como Cash Cow (geradora de fluxo de caixa limpo e previsível) para alimentar aportes sem endividamento bancário."
   },
   "family": {
     "spouse": "Val",
-    "children": "Lucca",
-    "notes": "A família é o alicerce sagrado e inegociável. Cada decisão de segurança patrimonial visa garantir a tranquilidade e o futuro de Val e Lucca."
+    "children": [
+      {
+        "id": "child-1",
+        "name": "Lucca",
+        "details": "Filho"
+      },
+      {
+        "id": "child-2",
+        "name": "Caio",
+        "details": "Filho"
+      }
+    ],
+    "notes": "A família é o alicerce sagrado e inegociável. Cada decisão de segurança patrimonial visa garantir a tranquilidade e o futuro de Val e Lucca. Minha saúde e meu tempo também! Então, normalmente, meu almoço deve ser em família."
   },
   "rules": "1. Disciplina e consistência superam a motivação passageira.\n2. Nunca tomar dívida cara ou rolar cartão de crédito — juros compostos trabalham a nosso favor, não contra.\n3. Equity é a única fonte de bilhão — manter controle e não vender ações barato.\n4. Na B3: disciplina cega de stop e meta diária de R$ 500,00 na janela 09:00–11:00 em dias de pregão.",
   "personalitySettings": {
@@ -20,5 +57,11 @@
     "morningBriefingTime": "06:30",
     "preMarketAlertTime": "08:45"
   },
-  "updatedAt": "2026-11-21T14:33:34.909Z"
+  "updatedAt": "2026-11-21T23:45:35.194Z",
+  "curriculum": {
+    "fileName": "Curri_culo_Lattes_Bruno.pdf",
+    "uploadedAt": "2026-11-21T23:42:59.797Z",
+    "summary": "### 🎓 Formação Acadêmica & Docência\n- **Mestrado em Ciências da Saúde** (2007-2009) - Universidade do Extremo Sul Catarinense (UNESC), Criciúma, Brasil. Título: \"Efeitos Terapêuticos do Exercício Físico no Dano Oxidativo Pulmonar de Camundongos Expostos à Fumaça do Cigarro\".\n- **Especialização em Fisiologia do Exercício** (2006-2008) - UNESC, Criciúma, Brasil.\n- **Graduação em Ciências Econômicas** (2021-2026) - Universidade Católica de Brasília (UCB), Brasília, Brasil. Título: \"O Dilema do Desenvolvimento: Uma Análise da Relação entre Crescimento Econômico, Populacional e Emissões de CO2 no Brasil entre os anos 2000 a 2023\".\n- **Licenciatura Plena em Educação Física** (2002-2005) - UNESC, Criciúma, Brasil.\n- **Aperfeiçoamento em Gestão e Liderança Universitária** (2013-2014) - Organização Universitária Interamericana (OUI | IGLU), Canadá.\n\n### 🏢 Trajetória Corporativa & Empreendedora\n- **Proprietário e Diretor** (2012-2022) - CORE Sports, Tubarão, SC. Responsável pela direção e administração da empresa, atuando nas áreas de marketing e gestão operacional.\n- **Professor e Pesquisador** (2008-atual) - Fundação Educacional Barriga Verde (FEBAVE) e Centro Universitário Barriga Verde (UNIBAVE). Envolvimento em pesquisa e desenvolvimento na área de Educação Física e coordenador de cursos de graduação e pós-graduação.\n- **Gestor e Consultor** - Grupo Menegali Thizon e CliniMind, atuando no desenvolvimento de projetos e consultoria em planejamento estratégico e gestão de processos.\n\n### ⚡ Competências Estratégicas & Diferenciais\n- Experiência robusta em gestão acadêmica e empresarial, com ênfase na implementação de processos de qualidade e inovação educacional.\n- Habilidades em pesquisa aplicada, tendo atuado em projetos focados em saúde e educação física.\n- Autoridade reconhecida em áreas de fisiologia do exercício e gestão de instituições de ensino superior, com publicações e participação ativa em eventos acadêmicos.\n\n### 📌 Resumo Executivo para a Kyrie\nBruno Thizon Menegali é um profissional multifacetado que combina expertise acadêmica com vivência prática em gestão e empreendedorismo. Com uma sólida formação em Ciências da Saúde, Fisiologia do Exercício e Economia, Bruno se destaca por sua capacidade de integrar conhecimento teórico à aplicação prática, especialmente em contextos educacionais e de saúde. Sua trajetória inclui a fundação de empresas inovadoras, como a CORE Sports e o CliniMind, além de sua atuação como professor e pesquisador em instituições renomadas, onde é responsável por projetos que promovem a qualidade educacional e a pesquisa aplicada.\n\nReconhecido por sua habilidade em liderar equipes e implementar estratégias eficazes, Bruno possui um DNA de realizador que se manifesta em suas contribuições significativas para o setor educacional e empresarial. Com uma visão voltada para o futuro, ele continua a expandir seus horizontes acadêmicos e profissionais, sempre em busca de novas oportunidades para impactar positivamente a sociedade e o ambiente educacional.",
+    "rawLength": 34096
+  }
 }
