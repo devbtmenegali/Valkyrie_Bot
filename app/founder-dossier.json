@@ -3,8 +3,8 @@
   "northStar": "Construção de um patrimônio líquido de R$ 1 BILHÃO. Multiplicação do valuation dos SaaS de Saúde (CliniMind e ProntoMed) para múltiplos de 10x-15x ARR, expansão da holding GluN Capital S.A. através de arbitragem de ativos reais com deságio e criação de um legado perpétuo para sua família.",
   "companies": {
     "glun": "Sociedade Anônima Fechada constituída sob a Lei nº 6.404/76. Holding inspirada no modelo Berkshire Hathaway para aquisição de imóveis em leilões judiciais/Caixa com 40-50% de deságio, originação de M&A e blindagem patrimonial.",
-    "prontomed": "SaaS de Saúde de última geração com auto-preenchimento SOAP por IA, prontuário inteligente e Secretária IA via WhatsApp para clínicas médicas.",
-    "clinimind": "Plataforma de gestão de saúde mental, IA clínica e educação médica continuada.",
+    "prontomed": "SaaS de Saúde de última geração com auto-preenchimento SOAP por IA, prontuário inteligente e Secretária IA via WhatsApp para clínicas médicas e Telemedicina.",
+    "clinimind": "Plataforma de IA para Estudos e Apoio Clínico aos Estudantes de Medicina e Médicos.",
     "nossaCasa": "Loja física de varejo. Atua como Cash Cow (geradora de fluxo de caixa limpo e previsível) para alimentar aportes sem endividamento bancário."
   },
   "family": {
@@ -20,5 +20,5 @@
     "morningBriefingTime": "06:30",
     "preMarketAlertTime": "08:45"
   },
-  "updatedAt": "2026-11-21T14:10:15.491Z"
+  "updatedAt": "2026-11-21T14:33:34.909Z"
 }

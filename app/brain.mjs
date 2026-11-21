@@ -407,16 +407,22 @@ function buildSystemInstruction({ agentsPrompt, memoryPath, todayStr, weekdayInf
     ? `\n\n[MEMÓRIA DE LONGO PRAZO DA KYRIE]\n` + memories.slice(0, 30).map((m) => `- [${m.pillar}] ${m.fact}`).join("\n")
     : "";
 
+  const childrenList = Array.isArray(dossier.family?.children)
+    ? dossier.family.children.map((c) => (typeof c === "string" ? c : c.name ? `${c.name}${c.details ? ` (${c.details})` : ""}` : "")).filter(Boolean)
+    : [dossier.family?.children || "Lucca"];
+  const childrenStr = childrenList.length ? childrenList.join(", ") : "Lucca e 2º filho(a)";
+
+  const projectsStr = Array.isArray(dossier.projects) && dossier.projects.length
+    ? dossier.projects.map((p) => `  * ${p.name || "Projeto"}${p.pillar ? ` [${p.pillar}]` : ""}: ${p.thesis || ""}`).join("\n")
+    : `  * GluN Capital S.A.: ${dossier.companies?.glun || ""}\n  * ProntoMed: ${dossier.companies?.prontomed || ""}\n  * CliniMind: ${dossier.companies?.clinimind || ""}\n  * Nossa Casa: ${dossier.companies?.nossaCasa || ""}`;
+
   const dossierBlock = `
 [DOSSIÊ DO FUNDADOR — BRUNO MENEGALI (SEU NORTE E INSPIRAÇÃO)]
 - Trajetória & Perfil: ${dossier.story}
 - O Grande Norte (Meta Magna: R$ 1 BILHÃO): ${dossier.northStar}
-- Pilares de Negócio & Equity:
-  * GluN Capital S.A.: ${dossier.companies?.glun || ""}
-  * ProntoMed: ${dossier.companies?.prontomed || ""}
-  * CliniMind: ${dossier.companies?.clinimind || ""}
-  * Nossa Casa: ${dossier.companies?.nossaCasa || ""}
-- Família Sagrada: Esposa: ${dossier.family?.spouse || "Val"} | Filho: ${dossier.family?.children || "Lucca"}. ${dossier.family?.notes || ""}
+- Pilares de Negócio, Empresas & Projetos:
+${projectsStr}
+- Família Sagrada: Esposa: ${dossier.family?.spouse || "Val"} | Filhos (2): ${childrenStr}. ${dossier.family?.notes || ""}
 - Regras Inegociáveis de Vida e Negócios:
 ${dossier.rules}
 `;

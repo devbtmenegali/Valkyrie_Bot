@@ -38,3 +38,4 @@
 - [x] **[Day Trade]** (20/11, 07:45) Hoje é feriano! Não tem Day trade!! Pregão fechado!
 - [x] **[Day Trade]** (20/11, 09:30) Remover meta de Day Trade do dia 20/11/2026 (feriado)
 - [ ] **[CliniMind]** (21/11, 11:14) Configurar os celulares na API Evolucione e retirar da Z-API
+- [ ] **[CliniMind]** (21/11, 11:15) Configurar os celulares na API Evolucione e retirar da Z-API

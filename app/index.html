@@ -829,46 +829,36 @@
             </div>
 
             <div class="dossier-grid-2">
+              <!-- Família & Filhos -->
               <div class="dossier-card">
-                <div class="card-header-row">
-                  <h4 style="font-size:13.5px;">👨‍👩‍👦 Família & Propósito Sagrado</h4>
+                <div class="card-header-row" style="margin-bottom:6px;">
+                  <h4 style="font-size:13.5px;">👨‍👩‍👦 Família & Filhos (Legado Sagrado)</h4>
+                  <button type="button" class="pill-btn" onclick="addChildRow()">➕ Adicionar Filho</button>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-                  <div>
-                    <label class="field-label">Esposa / Parceira:</label>
-                    <input id="dosSpouse" class="dossier-input" placeholder="Val" />
-                  </div>
-                  <div>
-                    <label class="field-label">Filho(s):</label>
-                    <input id="dosChildren" class="dossier-input" placeholder="Lucca" />
-                  </div>
+                <div style="margin-bottom:10px;">
+                  <label class="field-label">Esposa / Parceira:</label>
+                  <input id="dosSpouse" class="dossier-input" placeholder="Val" />
                 </div>
-                <label class="field-label">Notas e Prioridades Familiares:</label>
-                <textarea id="dosFamilyNotes" rows="3" class="dossier-textarea" placeholder="A família é o alicerce sagrado..."></textarea>
+                <div style="margin-bottom:10px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <label class="field-label" style="margin-bottom:0;">Filhos cadastrados:</label>
+                  </div>
+                  <div id="dossierChildrenContainer" style="display:flex;flex-direction:column;gap:8px;"></div>
+                </div>
+                <div>
+                  <label class="field-label">Notas e Prioridades Familiares:</label>
+                  <textarea id="dosFamilyNotes" rows="3" class="dossier-textarea" placeholder="A família é o alicerce sagrado..."></textarea>
+                </div>
               </div>
 
+              <!-- Empresas & Projetos Dinâmicos -->
               <div class="dossier-card">
-                <div class="card-header-row">
-                  <h4 style="font-size:13.5px;">🏢 Teses das Empresas & Pilares</h4>
+                <div class="card-header-row" style="margin-bottom:6px;">
+                  <h4 style="font-size:13.5px;">🏢 Teses das Empresas & Projetos</h4>
+                  <button type="button" class="pill-btn done" onclick="addProjectRow()">➕ Novo Projeto</button>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:8px;">
-                  <div>
-                    <label class="field-label">GluN Capital S.A. (Holding / M&A / Leilões):</label>
-                    <input id="dosCompGlun" class="dossier-input" />
-                  </div>
-                  <div>
-                    <label class="field-label">ProntoMed (SaaS Clínico / Prontuário IA):</label>
-                    <input id="dosCompPronto" class="dossier-input" />
-                  </div>
-                  <div>
-                    <label class="field-label">CliniMind (Saúde Mental / IA Clínica):</label>
-                    <input id="dosCompClini" class="dossier-input" />
-                  </div>
-                  <div>
-                    <label class="field-label">Nossa Casa (Varejo / Cash Cow):</label>
-                    <input id="dosCompNossa" class="dossier-input" />
-                  </div>
-                </div>
+                <p style="font-size:11.5px;color:var(--muted);margin-bottom:10px;">Cadastre quantos negócios, holdings ou SaaS desejar. A Kyrie compreende e monitora cada um.</p>
+                <div id="dossierProjectsContainer" style="display:flex;flex-direction:column;gap:12px;max-height:460px;overflow-y:auto;padding-right:4px;"></div>
               </div>
             </div>
 
@@ -2242,6 +2232,116 @@
       if (sub === "vault") loadVaultMemories();
     }
 
+    // --- Gerenciador Dinâmico de Filhos ---
+    let localChildren = [];
+    function renderChildrenRows(children) {
+      localChildren = (children || []).map((c, i) => ({
+        id: c.id || "child-" + (i + 1),
+        name: c.name || (typeof c === "string" ? c : ""),
+        details: c.details || (i === 0 ? "Filho" : "Filho(a)"),
+      }));
+      if (localChildren.length < 2) {
+        localChildren.push({ id: "child-2", name: "", details: "Filho(a)" });
+      }
+      const container = document.getElementById("dossierChildrenContainer");
+      if (!container) return;
+      container.innerHTML = localChildren.map((c, idx) => `
+        <div class="child-row-card" data-child-id="${c.id}" style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 10px;align-items:center;">
+          <div>
+            <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:2px;">Filho ${idx + 1} (Nome):</label>
+            <input class="dossier-input child-name" value="${escapeHtml(c.name)}" placeholder="Ex: Lucca" style="padding:6px 8px;font-size:12.5px;" />
+          </div>
+          <div>
+            <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:2px;">Idade / Aniversário / Notas:</label>
+            <input class="dossier-input child-details" value="${escapeHtml(c.details)}" placeholder="Ex: Aniversário 15/08" style="padding:6px 8px;font-size:12.5px;" />
+          </div>
+          ${localChildren.length > 2 ? `<button type="button" class="pill-btn" onclick="removeChildRow('${c.id}')" style="color:var(--danger);padding:4px 8px;margin-top:14px;" title="Remover">✕</button>` : `<div style="width:28px;"></div>`}
+        </div>
+      `).join("");
+    }
+
+    function addChildRow() {
+      collectChildrenFromUI();
+      localChildren.push({ id: "child-" + (Date.now()), name: "", details: "Filho(a)" });
+      renderChildrenRows(localChildren);
+    }
+
+    function removeChildRow(id) {
+      collectChildrenFromUI();
+      localChildren = localChildren.filter(c => c.id !== id);
+      renderChildrenRows(localChildren);
+    }
+
+    function collectChildrenFromUI() {
+      const rows = document.querySelectorAll("#dossierChildrenContainer .child-row-card");
+      localChildren = Array.from(rows).map(row => ({
+        id: row.getAttribute("data-child-id"),
+        name: row.querySelector(".child-name")?.value.trim() || "",
+        details: row.querySelector(".child-details")?.value.trim() || "",
+      }));
+      return localChildren;
+    }
+
+    // --- Gerenciador Dinâmico de Empresas e Projetos ---
+    let localProjects = [];
+    function renderProjectRows(projects) {
+      localProjects = projects || [];
+      const container = document.getElementById("dossierProjectsContainer");
+      if (!container) return;
+      if (!localProjects.length) {
+        container.innerHTML = "<div class='empty-state' style='padding:12px;'>Nenhum projeto cadastrado. Clique acima para adicionar.</div>";
+        return;
+      }
+      container.innerHTML = localProjects.map((p, idx) => `
+        <div class="project-row-card" data-proj-id="${p.id || 'proj-' + idx}" style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;">
+          <div style="display:grid;grid-template-columns:1fr 130px auto;gap:8px;align-items:center;">
+            <div>
+              <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:2px;">Nome do Negócio / Empresa:</label>
+              <input class="dossier-input proj-name" value="${escapeHtml(p.name || '')}" placeholder="Ex: GluN Capital S.A." style="padding:6px 10px;font-weight:600;font-size:13px;" />
+            </div>
+            <div>
+              <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:2px;">Pilar / Categoria:</label>
+              <input class="dossier-input proj-pillar" value="${escapeHtml(p.pillar || '')}" placeholder="Ex: SaaS / Holding" style="padding:6px 10px;font-size:12px;" />
+            </div>
+            <button type="button" class="pill-btn" onclick="removeProjectRow('${p.id || 'proj-' + idx}')" style="color:var(--danger);padding:5px 9px;margin-top:14px;" title="Remover Projeto">🗑️</button>
+          </div>
+          <div>
+            <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:2px;">Tese de Negócio, Modelo & Estratégia:</label>
+            <textarea class="dossier-textarea proj-thesis" rows="2" placeholder="Descreva o propósito, modelo de monetização, valuation ou rotina operacional..." style="padding:6px 10px;font-size:12px;">${escapeHtml(p.thesis || '')}</textarea>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function addProjectRow() {
+      collectProjectsFromUI();
+      localProjects.push({
+        id: "proj-" + Date.now(),
+        name: "",
+        pillar: "Novo Negócio",
+        thesis: "",
+      });
+      renderProjectRows(localProjects);
+    }
+
+    function removeProjectRow(id) {
+      if (!confirm("Deseja remover este projeto/empresa do seu Dossiê?")) return;
+      collectProjectsFromUI();
+      localProjects = localProjects.filter(p => (p.id || "") !== id);
+      renderProjectRows(localProjects);
+    }
+
+    function collectProjectsFromUI() {
+      const cards = document.querySelectorAll("#dossierProjectsContainer .project-row-card");
+      localProjects = Array.from(cards).map(card => ({
+        id: card.getAttribute("data-proj-id"),
+        name: card.querySelector(".proj-name")?.value.trim() || "",
+        pillar: card.querySelector(".proj-pillar")?.value.trim() || "",
+        thesis: card.querySelector(".proj-thesis")?.value.trim() || "",
+      })).filter(p => p.name || p.thesis);
+      return localProjects;
+    }
+
     async function loadDossier() {
       try {
         const res = await fetch("/api/dossier");
@@ -2253,12 +2353,10 @@
         document.getElementById("dosStory").value = currentDossier.story || "";
         document.getElementById("dosRules").value = currentDossier.rules || "";
         document.getElementById("dosSpouse").value = currentDossier.family?.spouse || "";
-        document.getElementById("dosChildren").value = currentDossier.family?.children || "";
         document.getElementById("dosFamilyNotes").value = currentDossier.family?.notes || "";
-        document.getElementById("dosCompGlun").value = currentDossier.companies?.glun || "";
-        document.getElementById("dosCompPronto").value = currentDossier.companies?.prontomed || "";
-        document.getElementById("dosCompClini").value = currentDossier.companies?.clinimind || "";
-        document.getElementById("dosCompNossa").value = currentDossier.companies?.nossaCasa || "";
+
+        renderChildrenRows(currentDossier.family?.children || []);
+        renderProjectRows(currentDossier.projects || []);
 
         const ps = currentDossier.personalitySettings || {};
         if (document.getElementById("cfgTone")) document.getElementById("cfgTone").value = ps.tone || "direto_estrategico";
@@ -2275,21 +2373,19 @@
       const statusEl = document.getElementById("dossierSaveStatus");
       if (statusEl) statusEl.textContent = "Salvando no cérebro da Kyrie e na nuvem...";
 
+      const children = collectChildrenFromUI();
+      const projects = collectProjectsFromUI();
+
       const payload = {
         northStar: document.getElementById("dosNorthStar").value,
         story: document.getElementById("dosStory").value,
         rules: document.getElementById("dosRules").value,
         family: {
           spouse: document.getElementById("dosSpouse").value,
-          children: document.getElementById("dosChildren").value,
+          children: children,
           notes: document.getElementById("dosFamilyNotes").value,
         },
-        companies: {
-          glun: document.getElementById("dosCompGlun").value,
-          prontomed: document.getElementById("dosCompPronto").value,
-          clinimind: document.getElementById("dosCompClini").value,
-          nossaCasa: document.getElementById("dosCompNossa").value,
-        },
+        projects: projects,
       };
 
       try {
@@ -2300,7 +2396,7 @@
         });
         if (res.ok) {
           if (statusEl) {
-            statusEl.textContent = "✅ Dossiê salvo e memorizado!";
+            statusEl.textContent = "✅ Dossiê, Projetos e Família salvos com sucesso!";
             setTimeout(() => { statusEl.textContent = ""; }, 3500);
           }
         }
