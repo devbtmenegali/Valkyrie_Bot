@@ -16,3 +16,4 @@
 | 2026-11-19 | Qui | ⬜ Jiu-Jitsu | ⬜ | ⬜ | ✅ 418 | Aula UNISUL 12K (17h) e UNISUL (19h) |
 | 2026-11-20 | Sex | ⬜ Jiu-Jitsu | ⬜ | ⬜ | ❌ Feriado - B3 fechada | Remover meta de Day Trade do dia 20/11/2026 |
 | 2026-11-21 | Sáb | ❌ Musculação | ✅ 2L | ✅ 30m | ⬜ Meta R$ 500 |  |
+| 2026-11-22 | Dom | ⬜ Musculação | ⬜ 2L | ✅ 30m | ⬜ Meta R$ 500 |  |

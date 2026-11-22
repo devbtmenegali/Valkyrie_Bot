@@ -15,6 +15,7 @@ import { getHolidayInfo } from "./holidays.mjs";
 import { fetchCalendarEvents, processCalendarQueue } from "./calendar.mjs";
 import { searchEmails, readEmail, createEmailDraft, sendEmail, getEmailBriefing } from "./gmail.mjs";
 import { downloadAndTranscribeEvolutionMedia } from "./audio-transcribe.mjs";
+import { runWhatsAppSweeper } from "./whatsapp-sweeper.mjs";
 import { fetchPreMarketData, fetchEconomicCalendar } from "./market.mjs";
 import { listContacts, upsertContact, getUpcomingBirthdays, buildSupplierMessage, searchEvolutionContacts } from "./skills/contacts.mjs";
 import { listFinance, addFinanceEntry, updateFinanceEntry, deleteFinanceEntry, markFinancePaid, getFinanceSummary, buildCollectionMessage } from "./skills/finance.mjs";
@@ -63,6 +64,8 @@ function loadEnv(filePath) {
   }
 }
 loadEnv(ENV_PATH);
+loadEnv(path.join(__dirname, "..", "whatsapp", ".env"));
+loadEnv(path.join(__dirname, "..", ".env"));
 loadEnv(path.join(ROOT_DIR, "whatsapp", ".env"));
 
 const PORT = Number(process.env.PORT || process.env.VALKYRIE_PORT || 3780);
@@ -408,7 +411,7 @@ function saveInbox(items) {
 }
 
 async function getAllInbox() {
-  const remote = await sbLoadInbox(60);
+  const remote = await sbLoadInbox(120);
   if (Array.isArray(remote)) {
     saveInbox(remote);
     return remote;
@@ -568,7 +571,8 @@ async function ingestWhatsAppMessage({ senderName, senderPhone, text, simulated 
   const fallbackPriority = isReplyToKyrie || isFamily ? "alta" : detectPriority(text, fallbackPillar);
   const analysis = await analyzeWhatsAppWithAI(senderName, text, fallbackPillar, fallbackPriority, isGroup);
 
-  const keepVisible = analysis.needsBruno || isReplyToKyrie || isFamily || simulated;
+  // Conversas individuais privadas (1-a-1) que não sejam ruído puro NUNCA devem ser auto-descartadas
+  const keepVisible = (!isGroup && !isObviousNoise(text)) || analysis.needsBruno || isReplyToKyrie || isFamily || simulated;
   const item = {
     id: crypto.randomUUID(),
     senderName: senderName || senderPhone || "Contato WhatsApp",
@@ -624,6 +628,18 @@ async function ingestWhatsAppMessage({ senderName, senderPhone, text, simulated 
     broadcastEvent("inbox_update", { item });
   }
   return item;
+}
+
+async function triggerWhatsAppSweeper() {
+  const existing = await getAllInbox();
+  return await runWhatsAppSweeper({
+    baseUrl: process.env.EVOLUTION_API_URL,
+    apiKey: process.env.EVOLUTION_API_KEY,
+    instance: process.env.EVOLUTION_INSTANCE,
+    ingestFn: ingestWhatsAppMessage,
+    existingInbox: existing,
+    maxChats: 40,
+  });
 }
 
 // ---------- Habits (Suporte Completo a 3 Estados: Pendente, Concluído, Não Realizado) ----------
@@ -1041,6 +1057,21 @@ async function generateValkyrieReply(userText, providerOverride = null) {
           },
           getStrategicRadar: () => generateOrGetRadar(false),
           getPendingWhatsApp,
+          scanWhatsAppNow: async (args = {}) => {
+            const result = await triggerWhatsAppSweeper();
+            const inbox = await getAllInbox();
+            return {
+              ...result,
+              recentPending: inbox.filter(i => i.status === "pending").slice(0, 10).map(i => ({
+                sender: i.senderName,
+                phone: i.senderPhone,
+                text: i.text,
+                time: i.time,
+                priority: i.priority,
+                draftReply: i.draftReply,
+              }))
+            };
+          },
           upsertDossierProject: (args) => upsertDossierProject(__dirname, args),
           createProjectKanban: (args) => createProjectKanban(args),
           registerCustomRoutine: async (args) => {
@@ -1851,6 +1882,11 @@ Seja cirúrgica, inspiradora, matematicamente sólida e orientada a patrimônio 
     return sendJson(res, 200, { received: true });
   }
 
+  if (req.method === "POST" && url.pathname === "/api/whatsapp/sync-scan") {
+    const result = await triggerWhatsAppSweeper();
+    return sendJson(res, 200, { ...result, inbox: await getAllInbox() });
+  }
+
   if (req.method === "POST" && url.pathname === "/api/inbox/simulate") {
     const samples = [
       {
@@ -1917,4 +1953,12 @@ Seja cirúrgica, inspiradora, matematicamente sólida e orientada a patrimônio 
 
 server.listen(PORT, HOST, () => {
   console.log(`⚡ Valkyrie rodando em http://${HOST}:${PORT} (${IS_MAC ? "Mac Local" : "Cloud 24/7"})`);
+  // Dispara primeira varredura ativa após 5s
+  setTimeout(() => {
+    triggerWhatsAppSweeper().catch((err) => console.error("[Sweeper Init]", err.message));
+  }, 5000);
+  // Varredura automática periódica a cada 2 minutos
+  setInterval(() => {
+    triggerWhatsAppSweeper().catch((err) => console.error("[Sweeper Interval]", err.message));
+  }, 120 * 1000);
 });

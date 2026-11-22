@@ -314,6 +314,16 @@ const BASE_TOOLS = [
     },
   },
   {
+    name: "scan_whatsapp_now",
+    description: "Varre ativamente os chats e conversas recentes da Evolution API do WhatsApp, transcreve áudios com IA Whisper e submete novas mensagens para a triagem executiva da Kyrie. Use sempre que o Bruno pedir para varrer ou checar todo o WhatsApp.",
+    parameters: {
+      type: "object",
+      properties: {
+        max_chats: { type: "number", description: "Número de chats recentes para varrer (padrão 40)" },
+      },
+    },
+  },
+  {
     name: "mac_open_app",
     description: "Abre um aplicativo instalado no Mac do Bruno (ex: Safari, Google Chrome, Notes, Finder, WhatsApp, Spotify, Calendar).",
     parameters: {
@@ -732,6 +742,9 @@ function makeToolExecutor({ todayStr, memoryPath, helpers, executedTools }) {
     }
     if (name === "get_whatsapp_urgent_summary" && helpers.getPendingWhatsApp) {
       return await helpers.getPendingWhatsApp(args.sender_name || "");
+    }
+    if (name === "scan_whatsapp_now" && helpers.scanWhatsAppNow) {
+      return await helpers.scanWhatsAppNow(args);
     }
     if (name === "dispatch_team_followup" && helpers.dispatchTeamFollowup) {
       return await helpers.dispatchTeamFollowup(args);
