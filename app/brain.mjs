@@ -197,11 +197,12 @@ const BASE_TOOLS = [
   },
   {
     name: "log_habit_or_trade",
-    description: "Registra o check-in diário de treino (Jiu-Jitsu ou Musculação), leitura (30 min) ou resultado de Day Trade no Habit Tracker de hoje.",
+    description: "Registra o check-in diário de treino (Jiu-Jitsu ou Musculação), hidratação (2L de água), leitura (30 min) ou resultado de Day Trade no Habit Tracker de hoje.",
     parameters: {
       type: "object",
       properties: {
         workout_done: { type: "boolean", description: "true se concluiu o treino de hoje" },
+        water_done: { type: "boolean", description: "true se bebeu a meta de 2 litros de água de hoje" },
         reading_done: { type: "boolean", description: "true se concluiu os 30 min de leitura" },
         day_trade_result: { type: "string", description: "Resultado do Day Trade (ex: '✅ R$ 520' ou '❌ -R$ 200')" },
         notes: { type: "string", description: "Observação opcional do dia" },
@@ -519,6 +520,7 @@ function makeToolExecutor({ todayStr, memoryPath, helpers, executedTools }) {
     if (name === "log_habit_or_trade") {
       const patch = {};
       if (typeof args.workout_done === "boolean") patch.workoutDone = args.workout_done;
+      if (typeof args.water_done === "boolean") patch.waterDone = args.water_done;
       if (typeof args.reading_done === "boolean") patch.readingDone = args.reading_done;
       if (args.day_trade_result) patch.tradeText = args.day_trade_result;
       if (args.notes) patch.notes = args.notes;
@@ -562,7 +564,7 @@ function makeToolExecutor({ todayStr, memoryPath, helpers, executedTools }) {
 
 // ---------- Gemini Runner ----------
 async function runGeminiProvider(provider, apiKey, { systemInstruction, history, userText, executeTool }) {
-  const recent = (history || []).slice(-6).map((m) => ({
+  const recent = (history || []).slice(-24).map((m) => ({
     role: m.role === "user" ? "user" : "model",
     parts: [{ text: m.text }],
   }));
@@ -603,7 +605,7 @@ async function runGeminiProvider(provider, apiKey, { systemInstruction, history,
 
 // ---------- OpenAI-Compatible Runner (OpenAI, Grok/xAI, Qwen/DashScope, Mistral) ----------
 async function runOpenAICompatibleProvider(provider, apiKey, { systemInstruction, history, userText, executeTool }) {
-  const recent = (history || []).slice(-6).map((m) => ({
+  const recent = (history || []).slice(-24).map((m) => ({
     role: m.role === "user" ? "user" : "assistant",
     content: m.text,
   }));

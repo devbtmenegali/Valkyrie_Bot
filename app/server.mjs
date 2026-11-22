@@ -162,6 +162,10 @@ function stopMacSpeech() {
     try { activeAudioProc.kill("SIGTERM"); } catch {}
     activeAudioProc = null;
   }
+  if (IS_MAC) {
+    try { execFile("killall", ["afplay"], () => {}); } catch {}
+    try { execFile("killall", ["say"], () => {}); } catch {}
+  }
   broadcastEvent("speaking", { speaking: false });
 }
 
@@ -356,14 +360,36 @@ function buildLocalDraftReply(senderName, text, pillar) {
 function addIdeaToKanban(text, pillarOverride = null) {
   const pillar = pillarOverride || detectPillar(text);
   const now = new Date().toLocaleString("pt-BR", { timeZone: TZ, day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-  const entry = `- [ ] **[${pillar}]** (${now}) ${text.replace(/\s+/g, " ").trim()}`;
+  const cleanText = text.replace(/^\[.*?\]\s*/, "").replace(/\s+/g, " ").trim();
+  const entry = `- [ ] (${now}) ${cleanText}`;
   let content = fs.existsSync(KANBAN_PATH) ? fs.readFileSync(KANBAN_PATH, "utf8") : "# Kanban\n";
-  const placeholder = "- *(Novas ideias recebidas entram aqui antes de ir para o projeto correspondente)*";
-  if (content.includes(placeholder)) {
-    content = content.replace(placeholder, entry);
+
+  // Mapeia o pilar para o cabeçalho exato no arquivo
+  const pillarHeaders = {
+    "glun": "## 🏢 Pilar 1: GluN Capital S.A.",
+    "prontomed": "## 🏥 Pilar 2: ProntoMed",
+    "clinimind": "## 🏥 Pilar 2: CliniMind",
+    "nossa casa": "## 🏠 Pilar 3: Nossa Casa (Varejo)",
+    "varejo": "## 🏠 Pilar 3: Nossa Casa (Varejo)",
+  };
+
+  const pLower = (pillar || "").toLowerCase();
+  const matchedKey = Object.keys(pillarHeaders).find((k) => pLower.includes(k));
+  const targetHeader = matchedKey ? pillarHeaders[matchedKey] : null;
+
+  if (targetHeader && content.includes(targetHeader)) {
+    const idx = content.indexOf(targetHeader);
+    const nextLineIdx = content.indexOf("\n", idx);
+    content = content.slice(0, nextLineIdx + 1) + entry + "\n" + content.slice(nextLineIdx + 1);
   } else {
-    content = content.trimEnd() + "\n" + entry + "\n";
+    const placeholder = "- *(Novas ideias recebidas entram aqui antes de ir para o projeto correspondente)*";
+    if (content.includes(placeholder)) {
+      content = content.replace(placeholder, entry);
+    } else {
+      content = content.trimEnd() + "\n" + `- [ ] **[${pillar}]** (${now}) ${cleanText}\n`;
+    }
   }
+
   fs.writeFileSync(KANBAN_PATH, content, "utf8");
   sbSetKV("kanban_md", { markdown: content }).catch(() => {});
   return pillar;
@@ -514,16 +540,27 @@ function getTodayHabits() {
   const info = getWeekdayInfo(0);
   const defaults = {
     date: today, day: info.shortDay, workoutName: info.workoutShort,
-    workoutDone: false, readingDone: false, tradeText: "⬜", notes: "",
+    workoutDone: false, waterDone: false, readingDone: false, tradeText: "⬜", notes: "",
   };
   if (!fs.existsSync(HABITS_PATH)) return defaults;
   const lines = fs.readFileSync(HABITS_PATH, "utf8").split(/\r?\n/);
   const row = lines.find((l) => l.startsWith(`| ${today} |`));
   if (!row) return defaults;
   const cols = row.split("|").map((c) => c.trim()).filter(Boolean);
+  const hasWater = cols.length >= 6 && (lines[12] || "").includes("Água");
+  if (hasWater) {
+    return {
+      date: today, day: cols[1] || info.shortDay, workoutName: info.workoutShort,
+      workoutDone: (cols[2] || "").includes("✅"),
+      waterDone: (cols[3] || "").includes("✅"),
+      readingDone: (cols[4] || "").includes("✅"),
+      tradeText: cols[5] || "⬜", notes: cols[6] || "",
+    };
+  }
   return {
     date: today, day: cols[1] || info.shortDay, workoutName: info.workoutShort,
     workoutDone: (cols[2] || "").includes("✅"),
+    waterDone: false,
     readingDone: (cols[3] || "").includes("✅"),
     tradeText: cols[4] || "⬜", notes: cols[5] || "",
   };
@@ -533,9 +570,10 @@ function saveTodayHabits(update) {
   const cur = getTodayHabits();
   const next = { ...cur, ...update };
   const workoutCell = `${next.workoutDone ? "✅" : "⬜"} ${next.workoutName}`;
+  const waterCell = next.waterDone ? "✅" : "⬜";
   const readingCell = next.readingDone ? "✅" : "⬜";
   const tradeCell = next.tradeText || "⬜";
-  const newRow = `| ${next.date} | ${next.day} | ${workoutCell} | ${readingCell} | ${tradeCell} | ${next.notes || ""} |`;
+  const newRow = `| ${next.date} | ${next.day} | ${workoutCell} | ${waterCell} | ${readingCell} | ${tradeCell} | ${next.notes || ""} |`;
 
   let content = fs.existsSync(HABITS_PATH) ? fs.readFileSync(HABITS_PATH, "utf8") : "";
   const lines = content.split(/\r?\n/);
@@ -582,6 +620,11 @@ async function generateValkyrieReply(userText, providerOverride = null) {
   if (lower === "/treino") {
     saveTodayHabits({ workoutDone: true });
     return `Boa, Bruno! Já deixei seu ${info.workoutShort} marcado como pago hoje. Disciplina em dia.`;
+  }
+
+  if (lower === "/agua" || lower === "/água" || lower === "água paga" || lower === "tomei água") {
+    saveTodayHabits({ waterDone: true });
+    return `Hidratação concluída! Meta de 2 Litros de água de hoje marcada como paga, Bruno. Foco e fisiologia em alta performance.`;
   }
 
   if (lower === "/leitura") {

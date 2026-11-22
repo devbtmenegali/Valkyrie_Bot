@@ -26,6 +26,7 @@
 - [ ] **CM-BACKLOG-02:** Vídeos de Avatares
 - [ ] **CM-BACKLOG-03:** Receita Automática
 - [ ] **CM-BACKLOG-04:** Emissão de NF / Certificado Digital
+- [ ] **CM-BACKLOG-05:** Configurar os celulares na API Evolucione e retirar da Z-API
 
 ---
 
@@ -37,5 +38,4 @@
 ## 💡 Pilar 8: Inbox de Ideias (Triagem)
 - [x] **[Day Trade]** (20/11, 07:45) Hoje é feriano! Não tem Day trade!! Pregão fechado!
 - [x] **[Day Trade]** (20/11, 09:30) Remover meta de Day Trade do dia 20/11/2026 (feriado)
-- [ ] **[CliniMind]** (21/11, 11:14) Configurar os celulares na API Evolucione e retirar da Z-API
-- [ ] **[CliniMind]** (21/11, 11:15) Configurar os celulares na API Evolucione e retirar da Z-API
+- [ ] **[Financeiro PF]** (21/11, 20:59) Organizar carteira de investimentos
