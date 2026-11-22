@@ -169,7 +169,17 @@ export async function processIncomingFile({
   }
 
   // 2. Detecta se é um LIVRO / PLAYBOOK para a Biblioteca
-  const isBook = lowerPrompt.includes("livro") || lowerPrompt.includes("book") || lowerPrompt.includes("playbook") || lowerPrompt.includes("biblioteca") || lowerPrompt.includes("estude");
+  const isBook = lowerPrompt.includes("livro") ||
+                 lowerPrompt.includes("book") ||
+                 lowerPrompt.includes("playbook") ||
+                 lowerPrompt.includes("biblioteca") ||
+                 lowerPrompt.includes("estude") ||
+                 lowerPrompt.includes("leia") ||
+                 lowerPrompt.includes("aprenda") ||
+                 safeName.toLowerCase().includes("livro") ||
+                 safeName.toLowerCase().includes("book") ||
+                 safeName.toLowerCase().includes("playbook");
+
   if (isBook) {
     let bookContent = textContent || "";
     if (!bookContent) {
@@ -179,19 +189,40 @@ export async function processIncomingFile({
       try { bookContent = Buffer.from(fileBase64, "base64").toString("utf8"); } catch {}
     }
     const bookTitle = fileName.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
+
+    let synthesis = "";
+    if (runSimplePromptAI && bookContent && bookContent.length > 50) {
+      try {
+        const ai = await runSimplePromptAI({
+          preferredProvider: "openai",
+          systemPrompt: `Você é a Kyrie, Assessora Pessoal de Investimentos e Riqueza de Bruno Menegali (meta: R$ 1 Bilhão).
+Você acabou de receber o livro/obra "${bookTitle}".
+Extraia os princípios centrais, modelos mentais, regras financeiras/organizacionais e mostre como aplicará no ecossistema do Bruno (GluN Capital S.A., ProntoMed, CliniMind, Nossa Casa).
+Responda de forma executiva, assertiva e sem clichês robóticos.`,
+          userText: `CONTEÚDO DO LIVRO "${bookTitle}":\n${bookContent.slice(0, 10000)}`,
+          maxTokens: 1200,
+        });
+        synthesis = ai.reply || "";
+      } catch {}
+    }
+
     addLibraryBook(appDir, {
       fileName: safeName,
       title: bookTitle,
-      content: bookContent || `Arquivo anexado: ${safeName}. Análise em andamento.`,
+      content: synthesis ? `${synthesis}\n\n---\n## Conteúdo / Excertos Extraídos:\n${bookContent}` : bookContent || `Arquivo anexado: ${safeName}.`,
     });
 
     const fact = `Novo livro/playbook estudado e adicionado à biblioteca: "${bookTitle}".`;
     if (saveMemoryFact) saveMemoryFact(memoryPath, { pillar: "Biblioteca/Conhecimento", fact });
 
+    const replyMsg = synthesis
+      ? `📚 **Livro Incorporado à Minha Biblioteca: "${bookTitle}"**\n\n${synthesis}\n\n— **Kyrie (Sua Assessora & Guru de Riqueza)**`
+      : `📚 **Livro Adicionado à Minha Biblioteca!**\n\nIncorporei o material **"${bookTitle}"** à minha base permanente de inteligência. A partir de agora, aplicarei as teses e ensinamentos dele em todas as análises de valuation, investimentos e decisões estratégicas da GluN, ProntoMed, CliniMind e Nossa Casa.\n\n— **Kyrie**`;
+
     return {
       action: "book_added",
       fileName: safeName,
-      message: `📚 **Livro Adicionado à Minha Biblioteca!**\n\nIncorporei o material **"${bookTitle}"** à minha base permanente de inteligência. A partir de agora, aplicarei as teses e ensinamentos dele em todas as análises de valuation, investimentos e decisões estratégicas da GluN, ProntoMed, CliniMind e Nossa Casa.`,
+      message: replyMsg,
     };
   }
 
@@ -232,6 +263,9 @@ Extraia os dados essenciais e responda EXCLUSIVAMENTE um JSON:
 
   // 4. Análise e Resumo Geral de Documento / Contrato / PDF
   let docText = textContent || "";
+  if (!docText) {
+    docText = await extractDocumentText(targetPath, appDir);
+  }
   if (!docText && (ext === ".md" || ext === ".txt" || ext === ".json" || ext === ".csv")) {
     try { docText = fs.readFileSync(targetPath, "utf8"); } catch {}
   }
