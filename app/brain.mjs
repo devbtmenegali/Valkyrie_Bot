@@ -364,6 +364,36 @@ const BASE_TOOLS = [
       required: ["action"],
     },
   },
+  {
+    name: "manage_founder_project",
+    description: "Cria ou atualiza um projeto, empresa ou iniciativa no Dossiê Estratégico do Fundador (ex: GluNTrade, CliniMind, ProntoMed, GluN Capital, etc.). SEMPRE chame esta ferramenta assim que o Bruno mencionar que está construindo, planejando ou testando um novo projeto ou empresa.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Nome do projeto ou empresa (ex: GluNTrade)" },
+        pillar: { type: "string", description: "Pilar estratégico (ex: Trading & Automação, HealthTech, Holding, Varejo)" },
+        thesis: { type: "string", description: "Tese de negócio, modelo de monetização, stack técnica ou objetivo do projeto" },
+      },
+      required: ["name", "thesis"],
+    },
+  },
+  {
+    name: "create_project_kanban",
+    description: "Cria uma nova seção de projeto dedicada no Kanban do Bruno com tarefas e marcos práticos iniciais. Chame imediatamente quando o Bruno anunciar um novo projeto (ex: GluNTrade) para abrir o backlog de execução sem ele precisar pedir.",
+    parameters: {
+      type: "object",
+      properties: {
+        project_name: { type: "string", description: "Nome do projeto (ex: GluNTrade)" },
+        pillar: { type: "string", description: "Pilar estratégico (ex: Automação & Mercado Financeiro)" },
+        tasks: {
+          type: "array",
+          items: { type: "string" },
+          description: "Lista de 3 a 5 tarefas e marcos críticos iniciais para estruturar o projeto",
+        },
+      },
+      required: ["project_name", "tasks"],
+    },
+  },
 ];
 
 function toGeminiSchema(schema) {
@@ -469,7 +499,14 @@ ${dossierBlock}
 6. **POSTURA PROSPECTIVA, PROATIVA E DE MENTORIA BASEADA NO PERFIL REAL:**
    - **DNA & Alavancas Únicas do Bruno:** Bruno une a visão analítica de um **Economista** (alocação de capital, juros compostos, balanço e valuation) com a autoridade científica de um **Mestre em Ciências da Saúde & Fisiologia** (autoridade médica/acadêmica inquestionável para validar o ProntoMed e CliniMind perante médicos e fundos) e a resiliência de um **Empreendedor Executivo** (10 anos de direção na CORE Sports, agora na GluN, Nossa Casa e HealthTechs).
    - **Proatividade & Prospectiva Ativa:** NUNCA espere apenas o Bruno pedir. Monitore proativamente os prazos do Kanban, cobre metas em aberto, questione gargalos operacionais, antecipe oportunidades macroeconômicas e guie cada decisão diária conectando suas habilidades ao plano de expansão do império.
-   - **Guardiã Inegociável da Família e Saúde:** O almoço em família com **Val, Lucca e Caio** é sagrado. Monitore a agenda do Google Calendar e alerte de forma veemente caso compromissos ou reuniões ameacem invadir a janela de almoço ou o tempo de qualidade familiar.${libraryBlock}${memoryBlock}`;
+   - **Guardiã Inegociável da Família e Saúde:** O almoço em família com **Val, Lucca e Caio** é sagrado. Monitore a agenda do Google Calendar e alerte de forma veemente caso compromissos ou reuniões ameacem invadir a janela de almoço ou o tempo de qualidade familiar.
+7. **DINAMISMO EXECUTIVO E PROATIVIDADE IMEDIATA (NUNCA ENGESSADA):**
+   - Se o Bruno mencionar qualquer novo projeto, ideia, plataforma, sistema ou iniciativa (ex: GluNTrade, novo SaaS, nova operação, novas automações):
+     * NUNCA seja engessada ou passiva! NUNCA diga apenas "Que legal, boa sorte" ou pergunte "Quer que eu crie uma tarefa?".
+     * **EXECUTE IMEDIATAMENTE NA HORA:**
+       1. Chame \`manage_founder_project\` para registrar o novo projeto e sua tese no Dossiê do Fundador.
+       2. Chame \`create_project_kanban\` para criar uma seção dedicada no Kanban e desdobrar as 4-5 tarefas prioritárias de execução.
+       3. Na sua resposta, apresente o plano de voo estratégico: arquitetura recomendada, requisitos de API/integração, modelo de risco e monetização, e os próximos passos já abertos no Kanban.${libraryBlock}${memoryBlock}`;
 }
 
 function makeToolExecutor({ todayStr, memoryPath, helpers, executedTools }) {
@@ -522,6 +559,12 @@ function makeToolExecutor({ todayStr, memoryPath, helpers, executedTools }) {
     }
     if (name === "complete_kanban_task") {
       return helpers.completeKanbanByQuery(args.query || "");
+    }
+    if (name === "manage_founder_project") {
+      return await helpers.upsertDossierProject(args);
+    }
+    if (name === "create_project_kanban") {
+      return helpers.createProjectKanban(args);
     }
     if (name === "log_habit_or_trade") {
       const patch = {};

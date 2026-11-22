@@ -124,6 +124,28 @@ export function loadFounderDossier(appDir) {
   }
 }
 
+export async function upsertDossierProject(appDir, { name, pillar, thesis, id }) {
+  const current = loadFounderDossier(appDir);
+  const projects = [...(current.projects || [])];
+  const safeId = id || ("proj-" + String(name || "novo").toLowerCase().replace(/[^a-z0-9]/g, "-"));
+  const existingIdx = projects.findIndex(p => p.id === safeId || (p.name && p.name.toLowerCase() === (name || "").toLowerCase()));
+
+  const item = {
+    id: safeId,
+    name: name || "Novo Projeto",
+    pillar: pillar || "Estratégia & Tecnologia",
+    thesis: thesis || ""
+  };
+
+  if (existingIdx >= 0) {
+    projects[existingIdx] = { ...projects[existingIdx], ...item };
+  } else {
+    projects.push(item);
+  }
+
+  return await saveFounderDossier(appDir, { projects });
+}
+
 export async function saveFounderDossier(appDir, updates) {
   const current = loadFounderDossier(appDir);
   const updated = {

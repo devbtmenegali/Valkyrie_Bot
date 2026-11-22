@@ -956,6 +956,8 @@ async function generateValkyrieReply(userText, providerOverride = null) {
           },
           getStrategicRadar: () => generateOrGetRadar(false),
           getPendingWhatsApp,
+          upsertDossierProject: (args) => upsertDossierProject(__dirname, args),
+          createProjectKanban: (args) => createProjectKanban(args),
           macOpenApp,
           macOpenUrl,
           macSearchFiles,

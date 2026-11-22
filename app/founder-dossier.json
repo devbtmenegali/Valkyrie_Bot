@@ -25,10 +25,16 @@
       "name": "Nossa Casa",
       "pillar": "Varejo & Cash Cow",
       "thesis": "Loja física de varejo. Atua como Cash Cow (geradora de fluxo de caixa limpo e previsível) para alimentar aportes sem endividamento bancário."
+    },
+    {
+      "id": "proj-gluntrade",
+      "name": "GluNTrade",
+      "pillar": "Automação B3 & Derivativos",
+      "thesis": "Plataforma de automação e apoio analítico para Day Trade e Opções estruturadas. Integração via API da Clear / Nelogica, execução algorítmica de travas e gestão rigorosa de stop/meta com base nos princípios de Trading in the Zone e Alexander Elder."
     }
   ],
   "companies": {
-    "glun": "Sociedade Anônima Fechada constituída sob a Lei nº 6.404/76. Holding inspirada no modelo Berkshire Hathaway para aquisição de imóveis em leilões judiciais/Caixa com 40-50% de deságio, originação de M&A e blindagem patrimonial.",
+    "glun": "Plataforma de automação e apoio analítico para Day Trade e Opções estruturadas. Integração via API da Clear / Nelogica, execução algorítmica de travas e gestão rigorosa de stop/meta com base nos princípios de Trading in the Zone e Alexander Elder.",
     "prontomed": "SaaS de Saúde de última geração com auto-preenchimento SOAP por IA, prontuário inteligente e Secretária IA via WhatsApp para clínicas médicas e Telemedicina.",
     "clinimind": "Plataforma de gestão de saúde mental, IA para estudos e apoio clínico aos estudantes de medicina e médicos.",
     "nossaCasa": "Loja física de varejo. Atua como Cash Cow (geradora de fluxo de caixa limpo e previsível) para alimentar aportes sem endividamento bancário."
@@ -57,7 +63,7 @@
     "morningBriefingTime": "06:30",
     "preMarketAlertTime": "08:30"
   },
-  "updatedAt": "2026-11-22T00:23:43.745Z",
+  "updatedAt": "2026-11-22T01:21:06.891Z",
   "curriculum": {
     "fileName": "Curri_culo_Lattes_Bruno.pdf",
     "uploadedAt": "2026-11-21T23:42:59.797Z",
