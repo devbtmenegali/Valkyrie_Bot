@@ -240,47 +240,92 @@
       background: var(--accent); color: #04150f; border: none;
       padding: 0 15px; height: 40px; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer;
     }
-      width: 44px; height: 44px; border-radius: 12px; font-size: 18px; cursor: pointer;
-      display: grid; place-items: center; transition: 0.15s;
+    /* WhatsApp Triage & Actionable Cards (Luxury Minimal & Slim) */
+    .inbox-toolbar {
+      padding: 9px 18px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+      background: var(--panel);
     }
-    .mic-btn:hover { border-color: var(--gold); }
-    .mic-btn.active { background: var(--gold-soft); border-color: var(--gold); color: var(--gold); }
-    .send-btn {
-      background: var(--accent); color: #04150f; border: none;
-      padding: 0 18px; height: 44px; border-radius: 12px; font-weight: 700; font-size: 14px; cursor: pointer;
+    .inbox-toolbar strong { font-size: 13.5px; font-weight: 600; letter-spacing: -0.2px; }
+    .inbox-toolbar p { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+    .inbox-list { flex: 1; overflow-y: auto; padding: 12px 18px; display: flex; flex-direction: column; gap: 9px; }
+    
+    .wa-card {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 11px 13px;
+      display: flex; flex-direction: column; gap: 7px; transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    .wa-card:hover { border-color: rgba(255,255,255,0.12); }
+    body.light-theme .wa-card {
+      background: #ffffff; border-color: #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+    }
+    body.light-theme .wa-card:hover { border-color: rgba(0,0,0,0.15); }
+    .wa-card.alta { border-left: 3.5px solid var(--danger); }
+    .wa-card.media { border-left: 3.5px solid var(--gold); }
+    .wa-card.baixa { border-left: 3.5px solid var(--muted); }
+
+    .wa-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .wa-sender { font-weight: 600; font-size: 13px; color: var(--text); }
+    .wa-tags { display: flex; gap: 5px; align-items: center; }
+    .tag {
+      font-size: 10px; padding: 2px 7px; border-radius: 6px; font-weight: 600;
+      background: var(--panel-2); border: 1px solid var(--border); color: var(--muted);
+    }
+    .tag.alta { background: var(--danger-soft); border-color: rgba(239,68,68,0.3); color: var(--danger); }
+    .tag.media { background: var(--gold-soft); border-color: rgba(229,169,60,0.3); color: var(--gold); }
+    body.light-theme .tag.alta { color: #dc2626; background: #fee2e2; border-color: #fca5a5; }
+    body.light-theme .tag.media { color: #b45309; background: #fef3c7; border-color: #fcd34d; }
+
+    .wa-msg {
+      background: var(--panel-2); padding: 7px 11px; border-radius: 8px;
+      font-size: 12.5px; line-height: 1.45; color: var(--text);
+      max-height: 120px; overflow-y: auto; word-break: break-word;
+      border: 1px solid var(--border);
+    }
+    body.light-theme .wa-msg {
+      background: #f8fafc; border-color: #e2e8f0; color: #1e293b;
     }
 
-    /* WhatsApp Triage */
-    .inbox-toolbar {
-      padding: 14px 22px; border-bottom: 1px solid var(--border);
-      display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+    .wa-draft-box {
+      display: flex; flex-direction: column; gap: 4px;
+      background: rgba(16, 185, 129, 0.05);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 9px;
+      padding: 8px 10px;
     }
-    .inbox-toolbar p { font-size: 12.5px; color: var(--muted); }
-    .inbox-list { flex: 1; overflow-y: auto; padding: 16px 22px; display: flex; flex-direction: column; gap: 13px; }
-    .wa-card {
-      background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 14px;
-      display: flex; flex-direction: column; gap: 9px;
+    body.light-theme .wa-draft-box {
+      background: rgba(16, 185, 129, 0.06);
+      border-color: rgba(5, 150, 105, 0.35);
     }
-    .wa-card.alta { border-left: 4px solid var(--danger); }
-    .wa-card.media { border-left: 4px solid var(--gold); }
-    .wa-card.baixa { border-left: 4px solid var(--muted); }
-    .wa-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .wa-sender { font-weight: 700; font-size: 14px; }
-    .wa-tags { display: flex; gap: 6px; align-items: center; }
-    .tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--border); }
-    .tag.alta { background: rgba(244,63,94,0.16); border-color: rgba(244,63,94,0.4); color: #fda4af; }
-    .tag.media { background: rgba(234,179,8,0.14); border-color: rgba(234,179,8,0.4); color: #fde047; }
-    .wa-msg { background: var(--panel-2); padding: 10px 12px; border-radius: 10px; font-size: 13.5px; line-height: 1.45; }
-    .wa-draft-label { font-size: 11.5px; color: var(--accent); font-weight: 600; }
+    .wa-draft-label {
+      font-size: 10.5px; color: var(--accent); font-weight: 600;
+      display: flex; align-items: center; gap: 4px;
+    }
     .wa-draft {
-      width: 100%; min-height: 62px; background: #0d141d; border: 1px solid var(--border);
-      color: var(--text); border-radius: 10px; padding: 9px 11px; font-family: inherit; font-size: 13px; resize: vertical;
+      width: 100%; min-height: 46px; background: transparent; border: none;
+      color: var(--text); font-family: inherit; font-size: 12.5px;
+      line-height: 1.42; resize: vertical; box-sizing: border-box; outline: none;
+      padding: 2px 0 0 0;
     }
-    .wa-actions { display: flex; gap: 8px; justify-content: flex-end; }
-    .btn-approve { background: var(--accent); color: #04150f; border: none; padding: 8px 14px; border-radius: 9px; font-weight: 700; font-size: 12.5px; cursor: pointer; }
-    .btn-dismiss { background: transparent; color: var(--muted); border: 1px solid var(--border); padding: 8px 12px; border-radius: 9px; font-size: 12.5px; cursor: pointer; }
-    .wa-sent-note { font-size: 12px; color: var(--accent); }
-    .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); font-size: 13.5px; line-height: 1.6; }
+    body.light-theme .wa-draft {
+      color: #0f172a !important;
+    }
+
+    .wa-actions { display: flex; gap: 6px; justify-content: flex-end; align-items: center; margin-top: 2px; }
+    .btn-approve {
+      background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; border: none;
+      padding: 5px 13px; border-radius: 7px; font-weight: 600; font-size: 11.5px; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 5px; transition: opacity 0.15s;
+      box-shadow: 0 1px 3px rgba(16, 185, 129, 0.25);
+    }
+    .btn-approve:hover { opacity: 0.92; }
+    .btn-dismiss {
+      background: transparent; color: var(--muted); border: 1px solid var(--border);
+      padding: 4px 10px; border-radius: 7px; font-size: 11px; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-dismiss:hover { color: var(--text); border-color: var(--muted); }
+    .wa-sent-note { font-size: 11.5px; color: var(--accent); }
+    .empty-state { text-align: center; padding: 36px 16px; color: var(--muted); font-size: 13px; line-height: 1.5; }
 
     .mobile-nav { display: none; }
     .drawer-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 40; }
@@ -682,35 +727,14 @@
       border-radius: 6px;
     }
     .wa-quote {
-      font-size: 13px;
+      font-size: 12.5px;
       font-style: italic;
       color: var(--text);
       background: var(--bg);
       border-left: 3px solid var(--accent);
-      padding: 6px 10px;
-      border-radius: 0 8px 8px 0;
+      padding: 5px 9px;
+      border-radius: 0 7px 7px 0;
     }
-    .wa-draft-box {
-      background: rgba(16, 185, 129, 0.05);
-      border: 1px dashed rgba(16, 185, 129, 0.35);
-      border-radius: 8px;
-      padding: 8px 10px;
-    }
-    .wa-draft-label {
-      font-size: 10.5px;
-      color: var(--accent);
-      font-weight: 600;
-      display: block;
-      margin-bottom: 3px;
-    }
-    .wa-actions {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      margin-top: 3px;
-      flex-wrap: wrap;
-    }
-
   </style>
 </head>
 <body>
@@ -1716,6 +1740,13 @@
       if (el) el.textContent = count || 0;
     }
 
+    function updateBooksCount(count) {
+      const el = document.getElementById("sidebarLibCount");
+      if (el) el.textContent = count || 0;
+      const el2 = document.getElementById("libCount");
+      if (el2) el2.textContent = count || 0;
+    }
+
     initTheme();
 
     function connectSSE() {
@@ -2066,7 +2097,7 @@
         const res = await fetch("/api/wealth/library");
         const data = await res.json();
         const books = data.books || [];
-        document.getElementById("libCount").textContent = books.length;
+        updateBooksCount(books.length);
         listEl.innerHTML = books.map((b) => `
           <div style="background:#0b0f14;border:1px solid #243041;border-radius:10px;padding:12px;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -2197,11 +2228,13 @@
           ${item.status === "sent"
             ? `<div class="wa-sent-note">✅ ${escapeHtml(item.deliveryNote)} (${item.sentAt}): "${escapeHtml(item.sentReply)}"</div>`
             : `
-              <div class="wa-draft-label">✨ Resposta sugerida pela Kyrie:</div>
-              <textarea class="wa-draft" id="draft-${item.id}">${escapeHtml(item.draftReply)}</textarea>
+              <div class="wa-draft-box">
+                <div class="wa-draft-label">💡 Resposta sugerida pela Kyrie:</div>
+                <textarea class="wa-draft" id="draft-${item.id}" rows="2">${escapeHtml(item.draftReply)}</textarea>
+              </div>
               <div class="wa-actions">
                 <button class="btn-dismiss" onclick="dismissInbox('${item.id}')">Arquivar</button>
-                <button class="btn-approve" onclick="approveInbox('${item.id}')">✅ Aprovar e Enviar</button>
+                <button class="btn-approve" onclick="approveInbox('${item.id}')">🚀 Aprovar e Enviar</button>
               </div>
             `
           }
@@ -2249,9 +2282,20 @@
 
       const mEl = document.getElementById("messages");
       mEl.innerHTML = (s.history || []).map((m, idx) => {
-        const isWa = m.whatsappData || (m.tools && (m.tools.includes("whatsapp_reply_card") || m.tools.includes("whatsapp_reply_received")));
-        if (isWa && m.whatsappData) {
-          const wd = m.whatsappData;
+        let wd = m.whatsappData;
+        if (!wd && (m.text.includes("respondeu no WhatsApp:") || (m.tools && m.tools.includes("whatsapp_reply_received")))) {
+          const match = m.text.match(/(?:Bruno,\s*)?([^\n:]+?)\s*respondeu no WhatsApp:\s*"?([\s\S]+?)"?$/i);
+          if (match) {
+            wd = {
+              senderName: match[1].trim(),
+              text: match[2].trim().replace(/^"|"$/g, ''),
+              draftReply: "Olá, já recebi e estou verificando para te responder.",
+              senderPhone: "",
+            };
+          }
+        }
+
+        if (wd) {
           return `
             <div class="msg-row valkyrie">
               <img class="msg-avatar" src="/avatar.jpg?v=viking" alt="Kyrie" />
@@ -2264,12 +2308,12 @@
                   <div class="wa-quote">"${escapeHtml(wd.text || '')}"</div>
                   <div class="wa-draft-box">
                     <span class="wa-draft-label">💡 Resposta Sugerida pela Kyrie:</span>
-                    <div style="font-size:12.5px;color:var(--text);">"${escapeHtml(wd.draftReply || '')}"</div>
+                    <div style="font-size:12px;color:var(--text);line-height:1.4;">"${escapeHtml(wd.draftReply || '')}"</div>
                   </div>
                   <div class="wa-actions">
                     <button class="pill-btn done" style="font-size:11px;padding:4px 10px;" onclick="quickSendWaReply('${escapeHtml(wd.senderPhone || '')}', '${escapeHtml(wd.draftReply || '').replace(/'/g, "\\'")}')">🚀 Enviar Resposta</button>
                     <button class="pill-btn" style="font-size:11px;padding:4px 9px;" onclick="useWaReplyInInput('${escapeHtml(wd.senderName || '')}', '${escapeHtml(wd.senderPhone || '')}')">✏️ Editar</button>
-                    <button class="pill-btn" style="font-size:11px;padding:4px 8px;color:var(--muted);" onclick="dismissWaInChat('${wd.id}', ${idx})">✓ Resolvido</button>
+                    <button class="pill-btn" style="font-size:11px;padding:4px 8px;color:var(--muted);" onclick="dismissWaInChat('${wd.id || ''}', ${idx})">✓ Resolvido</button>
                   </div>
                 </div>
               </div>
@@ -2294,6 +2338,7 @@
 
       renderInbox(s.inbox, s.evolutionConfigured);
       if (s.memoriesCount !== undefined) updateMemoryCount(s.memoriesCount);
+      if (s.booksCount !== undefined) updateBooksCount(s.booksCount);
     }
 
     async function changeProvider() {

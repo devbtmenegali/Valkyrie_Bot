@@ -1184,6 +1184,7 @@ const server = http.createServer(async (req, res) => {
       geminiEnabled: Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY),
       evolutionConfigured: Boolean(process.env.EVOLUTION_API_URL && process.env.EVOLUTION_API_KEY),
       memoriesCount: loadMemoryFacts(MEMORY_PATH).length,
+      booksCount: listLibraryBooks(__dirname).length,
     });
   }
 
@@ -1532,6 +1533,7 @@ Seja cirúrgica, inspiradora, matematicamente sólida e orientada a patrimônio 
       kanban: parseKanban(),
       habits: getTodayHabits(),
       memoriesCount: loadMemoryFacts(MEMORY_PATH).length,
+      booksCount: listLibraryBooks(__dirname).length,
     });
   }
 
@@ -1627,6 +1629,7 @@ Seja cirúrgica, inspiradora, matematicamente sólida e orientada a patrimônio 
       result,
       history,
       memoriesCount: loadMemoryFacts(MEMORY_PATH).length,
+      booksCount: listLibraryBooks(__dirname).length,
     });
   }
 

@@ -35,15 +35,6 @@
 
 ---
 
-## 🚀 Projeto: GluNTrade (Automação Day Trade & Opções)
-- [ ] **GLUNTRADE-01:** Obter credenciais de homologação e documentação técnica da API da Clear / XP
-- [ ] **GLUNTRADE-02:** Desenhar o módulo de gestão de risco e trailing stop automático (Trading in the Zone / Alexander Elder)
-- [ ] **GLUNTRADE-03:** Estruturar a esteira de travas e compra a seco de Opções com assimetria convexa
-- [ ] **GLUNTRADE-04:** Configurar ambiente de Sandbox / Paper Trading para validação algorítmica pré-capital real
-- [ ] **GLUNTRADE-05:** Definir regras de compliance CVM (ordens autorizadas pelo usuário vs execução autônoma)
-
----
-
 ## 💡 Pilar 8: Inbox de Ideias (Triagem)
 - [x] **[Day Trade]** (20/11, 07:45) Hoje é feriano! Não tem Day trade!! Pregão fechado!
 - [x] **[Day Trade]** (20/11, 09:30) Remover meta de Day Trade do dia 20/11/2026 (feriado)
