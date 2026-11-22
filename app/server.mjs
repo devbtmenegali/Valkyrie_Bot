@@ -16,7 +16,8 @@ import { fetchCalendarEvents, processCalendarQueue } from "./calendar.mjs";
 import { fetchPreMarketData, fetchEconomicCalendar } from "./market.mjs";
 import { listContacts, upsertContact, getUpcomingBirthdays, buildSupplierMessage, searchEvolutionContacts } from "./skills/contacts.mjs";
 import { listFinance, addFinanceEntry, updateFinanceEntry, deleteFinanceEntry, markFinancePaid, getFinanceSummary, buildCollectionMessage } from "./skills/finance.mjs";
-import { listLibraryBooks, addLibraryBook, buildWealthSystemPrompt } from "./skills/wealth.mjs";
+import { listLibraryBooks, addLibraryBook, buildWealthSystemPrompt, calculateBillionTracker } from "./skills/wealth.mjs";
+import { runSpecialistAgent } from "./skills/specialists.mjs";
 import { processIncomingFile, processCurriculumFile } from "./files.mjs";
 import { loadFounderDossier, saveFounderDossier } from "./dossier.mjs";
 import { LANGUAGE_VOICES, getLanguageCoachPrompt, listLanguageSessions, logLanguageSession } from "./skills/languages.mjs";
@@ -974,6 +975,55 @@ async function generateValkyrieReply(userText, providerOverride = null) {
             sbSetKV("custom_routines", list).catch(() => {});
             return item;
           },
+          dispatchTeamFollowup: async ({ collaborator_name, phone, company, task_title, deadline, custom_message }) => {
+            const msg = custom_message || `Olá ${collaborator_name}! Aqui é a Kyrie, secretária executiva de Bruno Menegali (CEO da ${company}). Estou acompanhando as entregas prioritárias da semana: temos o alinhamento da tarefa "${task_title}" previsto para ${deadline || 'breve'}. Como está o andamento? Posso confirmar a conclusão com o Bruno?`;
+            
+            let targetPhone = String(phone || "").replace(/\D/g, "");
+            if (!targetPhone) {
+              const contacts = await listContacts(__dirname);
+              const found = contacts.find((c) => c.name.toLowerCase().includes(collaborator_name.toLowerCase()) && c.phone);
+              if (found) targetPhone = found.phone.replace(/\D/g, "");
+            }
+
+            if (targetPhone && process.env.EVOLUTION_API_URL && process.env.EVOLUTION_API_KEY) {
+              try {
+                await sendWhatsAppMessage(msg, targetPhone);
+                return { ok: true, sentDirectly: true, to: collaborator_name, phone: targetPhone, message: msg };
+              } catch (e) {
+                console.error("[Followup Erro]", e.message);
+              }
+            }
+
+            // Se não enviou na hora ou não tem telefone, enfileira na aba WhatsApp
+            const inboxItem = {
+              id: crypto.randomUUID(),
+              senderName: `📤 Cobrança de Equipe: ${collaborator_name} (${company})`,
+              senderPhone: targetPhone || "",
+              text: `[Cobrança da Kyrie sobre: "${task_title}"]`,
+              pillar: company || "Gestão de Equipe",
+              priority: "alta",
+              draftReply: msg,
+              status: "pending",
+              simulated: !targetPhone,
+              time: nowTimeStr(),
+              createdAt: new Date().toISOString(),
+            };
+            const inbox = await getAllInbox();
+            inbox.unshift(inboxItem);
+            saveInbox(inbox);
+            sbInsertInbox(inboxItem).catch(() => {});
+            broadcastEvent("inbox_update", { item: inboxItem });
+            return { ok: true, queued: true, to: collaborator_name, message: msg, note: "Pronto na aba WhatsApp para disparo" };
+          },
+          delegateToSpecialistAgent: async ({ role, objective, context }) => {
+            return await runSpecialistAgent({ role, objective, context });
+          },
+          getBillionProgress: async () => {
+            const fin = await getFinanceSummary(__dirname);
+            const dossier = loadFounderDossier(__dirname);
+            const kanban = parseKanban();
+            return calculateBillionTracker({ dossier, financeSummary: fin, kanban });
+          },
           macOpenApp,
           macOpenUrl,
           macSearchFiles,
@@ -1338,6 +1388,13 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ---------- Wealth Advisor & Knowledge Library Endpoints ----------
+  if (req.method === "GET" && url.pathname === "/api/wealth/billion-tracker") {
+    const fin = await getFinanceSummary(__dirname);
+    const dossier = loadFounderDossier(__dirname);
+    const kanban = parseKanban();
+    return sendJson(res, 200, { ok: true, tracker: calculateBillionTracker({ dossier, financeSummary: fin, kanban }) });
+  }
+
   if (req.method === "GET" && url.pathname === "/api/wealth/library") {
     return sendJson(res, 200, { ok: true, books: listLibraryBooks(__dirname) });
   }

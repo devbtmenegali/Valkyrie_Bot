@@ -408,6 +408,47 @@ const BASE_TOOLS = [
       required: ["title", "trigger", "action_instructions"],
     },
   },
+  {
+    name: "dispatch_team_followup",
+    description: "Envia ou prepara uma cobrança de prazo e alinhamento profissional da Kyrie diretamente para o WhatsApp de um funcionário, desenvolvedor ou prestador de serviço de qualquer um dos projetos (ProntoMed, CliniMind, GluN, Nossa Casa).",
+    parameters: {
+      type: "object",
+      properties: {
+        collaborator_name: { type: "string", description: "Nome do colaborador ou prestador" },
+        phone: { type: "string", description: "Telefone com DDD (opcional se já cadastrado em Contatos)" },
+        company: { type: "string", description: "Empresa do projeto (ex: ProntoMed, CliniMind, GluN Capital, Nossa Casa)" },
+        task_title: { type: "string", description: "Nome da entrega ou tarefa cobrada (ex: Finalização do SOAP por IA)" },
+        deadline: { type: "string", description: "Prazo combinado ou data limite (ex: hoje às 17h, até sexta-feira)" },
+        custom_message: { type: "string", description: "Mensagem personalizada opcional (se omitida, a Kyrie usa modelo executivo padrão)" },
+      },
+      required: ["collaborator_name", "company", "task_title"],
+    },
+  },
+  {
+    name: "delegate_to_specialist_agent",
+    description: "Convoca um dos subagentes especialistas de alto nível da equipe da Kyrie (Tech Lead / Arquiteto de Software, Copywriter & Tráfego Médico, Advogado Societário S.A./CVM ou Analista de Valuation/CFO) para resolver uma demanda complexa com maestria técnica.",
+    parameters: {
+      type: "object",
+      properties: {
+        role: {
+          type: "string",
+          enum: ["dev_lead", "growth_copywriter", "corporate_lawyer", "cfo_analyst"],
+          description: "Papel do especialista: 'dev_lead' (código/APIs), 'growth_copywriter' (copys/posts/funis), 'corporate_lawyer' (S.A./CVM/contratos), 'cfo_analyst' (valuation/DRE/M&A)",
+        },
+        objective: { type: "string", description: "Objetivo detalhado da demanda que o especialista deve produzir ou analisar" },
+        context: { type: "string", description: "Contexto adicional, regras ou dados do projeto" },
+      },
+      required: ["role", "objective"],
+    },
+  },
+  {
+    name: "get_billion_progress",
+    description: "Consulta o Valuation Consolidado do Império de Bruno Menegali (Holding GluN Capital, ProntoMed, CliniMind, Varejo Nossa Casa e Caixa), calculando a distância exata, porcentagem e alavancas prioritárias para atingir R$ 1 Bilhão de patrimônio líquido.",
+    parameters: {
+      type: "object",
+      properties: {},
+    },
+  },
 ];
 
 function toGeminiSchema(schema) {
@@ -539,6 +580,14 @@ function makeToolExecutor({ todayStr, memoryPath, helpers, executedTools }) {
       return await helpers.fetchCalendarDate(args.date || todayStr);
     }
     if (name === "create_calendar_event") {
+      const startTime = String(args.start || "");
+      const isLunchTime = /(?:T|\s)(?:12:\d\d|13:[0-2]\d)/.test(startTime);
+      if (isLunchTime && !args.force_override) {
+        return {
+          blocked: true,
+          reason: "⚠️ VETO DA KYRIE (LEGADO SAGRADO): O horário de almoço com Val, Lucca e Caio (12:00 às 13:30) é inegociável para a sua saúde e presença familiar! Recomendo agendar a partir das 14:00. Se for uma emergência crítica incontornável, confirme expressamente.",
+        };
+      }
       const res = await createCalendarEvent({
         summary: args.summary,
         start: args.start,
@@ -635,6 +684,15 @@ function makeToolExecutor({ todayStr, memoryPath, helpers, executedTools }) {
     }
     if (name === "get_whatsapp_urgent_summary" && helpers.getPendingWhatsApp) {
       return await helpers.getPendingWhatsApp(args.sender_name || "");
+    }
+    if (name === "dispatch_team_followup" && helpers.dispatchTeamFollowup) {
+      return await helpers.dispatchTeamFollowup(args);
+    }
+    if (name === "delegate_to_specialist_agent" && helpers.delegateToSpecialistAgent) {
+      return await helpers.delegateToSpecialistAgent(args);
+    }
+    if (name === "get_billion_progress" && helpers.getBillionProgress) {
+      return await helpers.getBillionProgress();
     }
     if (name === "mac_open_app" && helpers.macOpenApp) return await helpers.macOpenApp(args.appName);
     if (name === "mac_open_url" && helpers.macOpenUrl) return await helpers.macOpenUrl(args.url);

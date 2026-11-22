@@ -84,3 +84,44 @@ Ao orientar o Bruno:
 \n\n— **Kyrie (Sua Assessora de Investimentos & Riqueza)**`;
 }
 
+export function calculateBillionTracker({ dossier = {}, financeSummary = {}, kanban = [] } = {}) {
+  const TARGET = 1000000000; // R$ 1.000.000.000,00 (1 Bilhão)
+
+  // Estimativas de Valuation atuais dos ativos cadastrados
+  // 1. GluN Capital S.A. (Patrimônio Líquido Inicial + Tese de Imóveis)
+  const glunValuation = 5000000; // R$ 5M base de valuation inicial/capital autorizado
+
+  // 2. ProntoMed (HealthTech SaaS em validação de MVP / Tração)
+  const prontomedValuation = 4000000; // R$ 4M valuation pré-money inicial
+
+  // 3. CliniMind (Plataforma ativa de saúde mental & estudos)
+  const clinimindValuation = 3500000; // R$ 3.5M valuation pré-money
+
+  // 4. Nossa Casa (Varejo operacional e ativos de estoque)
+  const varejoValuation = 1500000; // R$ 1.5M base de ativos
+
+  // 5. Liquidez e Caixa Disponível estimado
+  const liquidCash = Math.max(0, (financeSummary.totalReceberAberto || 0) - (financeSummary.totalPagarAberto || 0));
+
+  const totalCurrentValuation = glunValuation + prontomedValuation + clinimindValuation + varejoValuation + liquidCash;
+  const gapToBillion = TARGET - totalCurrentValuation;
+  const progressPercent = ((totalCurrentValuation / TARGET) * 100).toFixed(3);
+
+  return {
+    target: TARGET,
+    targetFormatted: "R$ 1.000.000.000,00 (1 Bilhão)",
+    currentEstimatedNetWorth: totalCurrentValuation,
+    currentEstimatedNetWorthFormatted: `R$ ${totalCurrentValuation.toLocaleString("pt-BR")},00`,
+    progressPercent: `${progressPercent}%`,
+    gapToBillionFormatted: `R$ ${gapToBillion.toLocaleString("pt-BR")},00`,
+    breakdown: [
+      { asset: "GluN Capital S.A. (Holding)", type: "Holding / Imóveis", estimatedValuation: glunValuation, targetValuation: "R$ 500M (Leilões & M&A)" },
+      { asset: "ProntoMed (HealthTech SaaS)", type: "SaaS Recorrente", estimatedValuation: prontomedValuation, targetValuation: "R$ 300M (Escala 20k clínicas a 10x ARR)" },
+      { asset: "CliniMind (MentalTech SaaS)", type: "SaaS Recorrente", estimatedValuation: clinimindValuation, targetValuation: "R$ 150M (Base estudantil & médica)" },
+      { asset: "Nossa Casa (Varejo)", type: "Cash Cow", estimatedValuation: varejoValuation, targetValuation: "R$ 50M (Expansão de lojas)" },
+    ],
+    strategicTakeaway: "Para saltar de R$ 14M para R$ 100M no curto prazo, a alavanca nº 1 é ligar os primeiros 100 clientes pagantes do ProntoMed e fechar o estatuto da GluN Capital para integralização de imóveis.",
+  };
+}
+
+
