@@ -958,6 +958,22 @@ async function generateValkyrieReply(userText, providerOverride = null) {
           getPendingWhatsApp,
           upsertDossierProject: (args) => upsertDossierProject(__dirname, args),
           createProjectKanban: (args) => createProjectKanban(args),
+          registerCustomRoutine: async (args) => {
+            const routinesFile = path.join(__dirname, "custom-routines.json");
+            let list = [];
+            try {
+              if (fs.existsSync(routinesFile)) list = JSON.parse(fs.readFileSync(routinesFile, "utf8"));
+            } catch {}
+            const item = {
+              id: crypto.randomUUID(),
+              ...args,
+              createdAt: new Date().toISOString(),
+            };
+            list.push(item);
+            fs.writeFileSync(routinesFile, JSON.stringify(list, null, 2), "utf8");
+            sbSetKV("custom_routines", list).catch(() => {});
+            return item;
+          },
           macOpenApp,
           macOpenUrl,
           macSearchFiles,

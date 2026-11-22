@@ -394,6 +394,20 @@ const BASE_TOOLS = [
       required: ["project_name", "tasks"],
     },
   },
+  {
+    name: "register_custom_routine",
+    description: "Cria e registra uma nova rotina, comportamento, regra de monitoramento ou função executiva autônoma permanente na Kyrie a pedido do Bruno diretamente pelo chat. Chame sempre que ele pedir para você 'aprender uma nova função', 'criar uma rotina', 'passar a monitorar X' ou 'cobrar Y'.",
+    parameters: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Nome curto da rotina ou função criada (ex: Cobrança de Devs CliniMind)" },
+        trigger: { type: "string", description: "Gatilho de ativação (ex: Toda sexta-feira às 16h, ou Ao receber mensagem de médico)" },
+        action_instructions: { type: "string", description: "Instruções exatas do que a Kyrie deve executar" },
+        target_pillar: { type: "string", description: "Pilar corporativo afetado (ex: ProntoMed, CliniMind, GluN Capital, Família)" },
+      },
+      required: ["title", "trigger", "action_instructions"],
+    },
+  },
 ];
 
 function toGeminiSchema(schema) {
@@ -506,7 +520,16 @@ ${dossierBlock}
      * **EXECUTE IMEDIATAMENTE NA HORA:**
        1. Chame \`manage_founder_project\` para registrar o novo projeto e sua tese no Dossiê do Fundador.
        2. Chame \`create_project_kanban\` para criar uma seção dedicada no Kanban e desdobrar as 4-5 tarefas prioritárias de execução.
-       3. Na sua resposta, apresente o plano de voo estratégico: arquitetura recomendada, requisitos de API/integração, modelo de risco e monetização, e os próximos passos já abertos no Kanban.${libraryBlock}${memoryBlock}`;
+       3. Na sua resposta, apresente o plano de voo estratégico: arquitetura recomendada, requisitos de API/integração, modelo de risco e monetização, e os próximos passos já abertos no Kanban.
+8. **CHIEF OF STAFF IMPLACÁVEL: QUESTIONAR, DESAFIAR E COBRAR SEM COMPLACÊNCIA (NUNCA SER 'YES-MAN'):**
+   - **Tolerância Zero com Distração:** A meta do Bruno é construir um patrimônio líquido de R$ 1 Bilhão, e ele mesmo reconhece que está longe e que é multifacetado demais. Se você apenas concordar com tudo o que ele diz, será cúmplice da dispersão.
+   - **Questione Premissas e Custos de Oportunidade:** Quando o Bruno trouxer uma nova ideia mirabolante ou quiser abrir mais uma frente operacional, pergunte: *"Bruno, isso aproxima ou afasta você dos R$ 100k de MRR do ProntoMed e da validação da GluN Capital? Por que abrir isso agora se o KAN-01 e o KAN-04 estão travados?"*.
+   - **Cobre Prazos e Execução Rigorosa:** Cobre as pendências não resolvidas sem rodeios. Aponte quando tarefas operacionais estiverem tomando o tempo do CEO (que vale R$ 5.000/hora).
+   - **Seja a Voz da Razão Estratégica:** Proponha soluções melhores, corte excessos, questione prazos irrealistas e force foco obsessivo naquilo que realmente move o ponteiro do valuation e da geração de caixa.
+9. **AUTO-MELHORIA CONTÍNUA & CRIAÇÃO DE NOVAS FUNÇÕES (SELF-EVOLVING EXECUTIVE):**
+   - Quando o Bruno pedir diretamente no chat para você "aprender uma nova função", "criar uma rotina", "passar a monitorar X" ou "cobrar tal funcionário/equipe":
+   - Use imediatamente a ferramenta \`register_custom_routine\` para salvar a instrução e ativá-la no seu comportamento!
+   - Você se aprimora em tempo real, sem necessidade de ele recorrer a código para novas regras e rotinas operacionais.${libraryBlock}${memoryBlock}`;
 }
 
 function makeToolExecutor({ todayStr, memoryPath, helpers, executedTools }) {
@@ -565,6 +588,17 @@ function makeToolExecutor({ todayStr, memoryPath, helpers, executedTools }) {
     }
     if (name === "create_project_kanban") {
       return helpers.createProjectKanban(args);
+    }
+    if (name === "register_custom_routine") {
+      const routineFact = {
+        category: "regra",
+        fact: `[ROTINA_AUTÔNOMA] ${args.title} (${args.target_pillar || 'Geral'}): Quando "${args.trigger}", executar: ${args.action_instructions}`,
+      };
+      saveMemoryFact(memoryPath, routineFact);
+      if (helpers.registerCustomRoutine) {
+        await helpers.registerCustomRoutine(args);
+      }
+      return { ok: true, registered: args, message: `Rotina "${args.title}" registrada com sucesso e ativada no Segundo Cérebro!` };
     }
     if (name === "log_habit_or_trade") {
       const patch = {};
