@@ -630,9 +630,8 @@ function saveTodayHabits(update) {
   const workoutCell = formatHabitStatus(next.workoutStatus, next.workoutName);
   const waterCell = formatHabitStatus(next.waterStatus, "2L");
   const readingCell = formatHabitStatus(next.readingStatus, "30m");
-  const tradeCell = next.tradeText && (next.tradeText.includes("✅") || next.tradeText.includes("❌"))
-    ? next.tradeText
-    : formatHabitStatus(next.tradeStatus, next.tradeText && next.tradeText !== "⬜" ? next.tradeText : "Meta R$ 500");
+  const cleanTrade = (next.tradeText || "").replace(/^[⬜✅❌\s]+/g, "").trim() || "Meta R$ 500";
+  const tradeCell = formatHabitStatus(next.tradeStatus, cleanTrade);
 
   const newRow = `| ${next.date} | ${next.day} | ${workoutCell} | ${waterCell} | ${readingCell} | ${tradeCell} | ${next.notes || ""} |`;
 

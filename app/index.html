@@ -1710,12 +1710,6 @@
     }
 
     initTheme();
-      updateNotifBtn();
-      if (perm === "granted") {
-        fireNotification("⚡ Kyrie Ativada", "Briefings, Day Trade e alertas urgentes liberados.", "welcome");
-        if (voiceEnabled) speakText("Alertas ativados, Bruno. Pode contar comigo.");
-      }
-    }
 
     function connectSSE() {
       const es = new EventSource("/api/events");
@@ -2222,30 +2216,6 @@
       renderHabitsState(s.habits);
       const wLabel = document.getElementById("workoutLabel");
       if (wLabel && s.habits?.workoutName) wLabel.textContent = s.habits.workoutName;
-      const wb = document.getElementById("workoutBtn");
-      if (wb) {
-        wb.textContent = s.habits.workoutDone ? "✅ Feito" : "Marcar";
-        wb.className = "pill-btn" + (s.habits.workoutDone ? " done" : "");
-      }
-
-      const wb2 = document.getElementById("waterBtn");
-      if (wb2) {
-        wb2.textContent = s.habits.waterDone ? "✅ Paga" : "Marcar";
-        wb2.className = "pill-btn" + (s.habits.waterDone ? " done" : "");
-      }
-
-      const rb = document.getElementById("readingBtn");
-      if (rb) {
-        rb.textContent = s.habits.readingDone ? "✅ Feita" : "Marcar";
-        rb.className = "pill-btn" + (s.habits.readingDone ? " done" : "");
-      }
-
-      const tb = document.getElementById("tradeBtn");
-      if (tb && !tb.classList.contains("habit-badge-btn")) {
-        const hasTrade = s.habits.tradeText && s.habits.tradeText !== "⬜";
-        tb.textContent = hasTrade ? s.habits.tradeText : "Registrar";
-        tb.className = "pill-btn" + (hasTrade ? " done" : "");
-      }
 
       const calEl = document.getElementById("calendarList");
       const events = s.calendarToday?.events || [];
