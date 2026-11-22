@@ -2220,10 +2220,13 @@
       document.getElementById("todayLabel").textContent = s.weekday.shortDay + " • " + s.today.split("-").reverse().slice(0,2).join("/");
 
       renderHabitsState(s.habits);
-      document.getElementById("workoutLabel").textContent = s.habits.workoutName;
+      const wLabel = document.getElementById("workoutLabel");
+      if (wLabel && s.habits?.workoutName) wLabel.textContent = s.habits.workoutName;
       const wb = document.getElementById("workoutBtn");
-      wb.textContent = s.habits.workoutDone ? "✅ Feito" : "Marcar";
-      wb.className = "pill-btn" + (s.habits.workoutDone ? " done" : "");
+      if (wb) {
+        wb.textContent = s.habits.workoutDone ? "✅ Feito" : "Marcar";
+        wb.className = "pill-btn" + (s.habits.workoutDone ? " done" : "");
+      }
 
       const wb2 = document.getElementById("waterBtn");
       if (wb2) {
@@ -2232,13 +2235,17 @@
       }
 
       const rb = document.getElementById("readingBtn");
-      rb.textContent = s.habits.readingDone ? "✅ Feita" : "Marcar";
-      rb.className = "pill-btn" + (s.habits.readingDone ? " done" : "");
+      if (rb) {
+        rb.textContent = s.habits.readingDone ? "✅ Feita" : "Marcar";
+        rb.className = "pill-btn" + (s.habits.readingDone ? " done" : "");
+      }
 
       const tb = document.getElementById("tradeBtn");
-      const hasTrade = s.habits.tradeText && s.habits.tradeText !== "⬜";
-      tb.textContent = hasTrade ? s.habits.tradeText : "Registrar";
-      tb.className = "pill-btn" + (hasTrade ? " done" : "");
+      if (tb && !tb.classList.contains("habit-badge-btn")) {
+        const hasTrade = s.habits.tradeText && s.habits.tradeText !== "⬜";
+        tb.textContent = hasTrade ? s.habits.tradeText : "Registrar";
+        tb.className = "pill-btn" + (hasTrade ? " done" : "");
+      }
 
       const calEl = document.getElementById("calendarList");
       const events = s.calendarToday?.events || [];
