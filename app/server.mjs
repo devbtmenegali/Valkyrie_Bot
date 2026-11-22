@@ -13,6 +13,7 @@ import { sendWhatsAppMessage } from "../whatsapp/send.mjs";
 import { runValkyrieAI, runSimplePromptAI, getConfiguredProviders, loadMemoryFacts, saveMemoryFact, deleteMemoryFact } from "./brain.mjs";
 import { getHolidayInfo } from "./holidays.mjs";
 import { fetchCalendarEvents, processCalendarQueue } from "./calendar.mjs";
+import { searchEmails, readEmail, createEmailDraft, sendEmail, getEmailBriefing } from "./gmail.mjs";
 import { fetchPreMarketData, fetchEconomicCalendar } from "./market.mjs";
 import { listContacts, upsertContact, getUpcomingBirthdays, buildSupplierMessage, searchEvolutionContacts } from "./skills/contacts.mjs";
 import { listFinance, addFinanceEntry, updateFinanceEntry, deleteFinanceEntry, markFinancePaid, getFinanceSummary, buildCollectionMessage } from "./skills/finance.mjs";
@@ -1024,6 +1025,10 @@ async function generateValkyrieReply(userText, providerOverride = null) {
             const kanban = parseKanban();
             return calculateBillionTracker({ dossier, financeSummary: fin, kanban });
           },
+          searchEmails: (args) => searchEmails(args),
+          readEmail: (args) => readEmail(args),
+          createEmailDraft: (args) => createEmailDraft(args),
+          sendEmail: (args) => sendEmail(args),
           macOpenApp,
           macOpenUrl,
           macSearchFiles,
@@ -1385,6 +1390,18 @@ const server = http.createServer(async (req, res) => {
     const body = await readJsonBody(req);
     await markFinancePaid(__dirname, body.id);
     return sendJson(res, 200, { ok: true, finance: await getFinanceSummary(__dirname) });
+  }
+
+  // ---------- Gmail Endpoints ----------
+  if (req.method === "GET" && url.pathname === "/api/gmail/unread") {
+    const briefing = await getEmailBriefing();
+    return sendJson(res, 200, { ok: true, briefing });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/gmail/search") {
+    const body = await readJsonBody(req);
+    const result = await searchEmails({ query: body.query || "is:unread", max: Number(body.max || 8) });
+    return sendJson(res, 200, result);
   }
 
   // ---------- Wealth Advisor & Knowledge Library Endpoints ----------

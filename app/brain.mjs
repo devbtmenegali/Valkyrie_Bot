@@ -449,6 +449,54 @@ const BASE_TOOLS = [
       properties: {},
     },
   },
+  {
+    name: "search_emails",
+    description: "Busca e-mails no Gmail oficial do Bruno (brunotmenegali@gmail.com). Permite buscar não lidos (query: 'is:unread'), faturas, fornecedores, contratos ou palavras-chave de negócios.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Termo de busca ou filtro (ex: 'is:unread', 'from:stone', 'prontomed', 'fatura')" },
+        max: { type: "number", description: "Quantidade de mensagens a retornar (padrão: 8)" },
+      },
+    },
+  },
+  {
+    name: "read_email",
+    description: "Lê o conteúdo completo e detalhes de um e-mail específico pelo seu ID retornado na busca.",
+    parameters: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "ID do e-mail no Gmail" },
+      },
+      required: ["id"],
+    },
+  },
+  {
+    name: "create_email_draft",
+    description: "Cria um rascunho de e-mail executivo bem redigido na caixa de rascunhos do Gmail do Bruno para ele revisar antes do disparo.",
+    parameters: {
+      type: "object",
+      properties: {
+        to: { type: "string", description: "E-mail do destinatário" },
+        subject: { type: "string", description: "Assunto do e-mail" },
+        body: { type: "string", description: "Conteúdo completo da mensagem" },
+      },
+      required: ["to", "subject", "body"],
+    },
+  },
+  {
+    name: "send_email",
+    description: "Dispara um e-mail diretamente da conta brunotmenegali@gmail.com quando o Bruno der a ordem de envio.",
+    parameters: {
+      type: "object",
+      properties: {
+        to: { type: "string", description: "Destinatário" },
+        subject: { type: "string", description: "Assunto" },
+        body: { type: "string", description: "Conteúdo do e-mail" },
+      },
+      required: ["to", "subject", "body"],
+    },
+  },
 ];
 
 function toGeminiSchema(schema) {
@@ -693,6 +741,18 @@ function makeToolExecutor({ todayStr, memoryPath, helpers, executedTools }) {
     }
     if (name === "get_billion_progress" && helpers.getBillionProgress) {
       return await helpers.getBillionProgress();
+    }
+    if (name === "search_emails" && helpers.searchEmails) {
+      return await helpers.searchEmails(args);
+    }
+    if (name === "read_email" && helpers.readEmail) {
+      return await helpers.readEmail(args);
+    }
+    if (name === "create_email_draft" && helpers.createEmailDraft) {
+      return await helpers.createEmailDraft(args);
+    }
+    if (name === "send_email" && helpers.sendEmail) {
+      return await helpers.sendEmail(args);
     }
     if (name === "mac_open_app" && helpers.macOpenApp) return await helpers.macOpenApp(args.appName);
     if (name === "mac_open_url" && helpers.macOpenUrl) return await helpers.macOpenUrl(args.url);
