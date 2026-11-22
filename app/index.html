@@ -521,6 +521,182 @@
       box-shadow: 0 0 6px var(--accent);
     }
 
+  
+    /* ========================================================
+       ESTÉTICA LUXO MINIMALISTA (CLAUDE / MANUS / ANTIGRAVITY)
+       ======================================================== */
+    :root {
+      --bg: #0c1017;
+      --panel: #121721;
+      --panel-2: #18202d;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e6edf3;
+      --muted: #7d8b99;
+      --accent: #10b981;
+      --accent-soft: rgba(16, 185, 129, 0.12);
+      --gold: #e5a93c;
+      --gold-soft: rgba(229, 169, 60, 0.12);
+      --danger: #ef4444;
+      --danger-soft: rgba(239, 68, 68, 0.12);
+      --user-bubble: #132724;
+      --bot-bubble: #141b26;
+    }
+    body.light-theme {
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --panel-2: #f1f5f9;
+      --border: rgba(0, 0, 0, 0.07);
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #059669;
+      --accent-soft: rgba(5, 150, 105, 0.10);
+      --gold: #d97706;
+      --gold-soft: rgba(217, 119, 6, 0.10);
+      --danger: #e11d48;
+      --danger-soft: rgba(225, 29, 72, 0.10);
+      --user-bubble: #e8f5ed;
+      --bot-bubble: #ffffff;
+    }
+
+    .topbar {
+      white-space: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tabs {
+      background: var(--panel-2);
+      padding: 3px;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+      display: inline-flex;
+      gap: 2px;
+    }
+    .tab-btn {
+      border: none;
+      background: transparent;
+      padding: 5px 11px;
+      border-radius: 7px;
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active {
+      background: var(--panel);
+      color: var(--text);
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+    }
+    body.light-theme .tab-btn.active {
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    /* 3-State Habit Badges & Mini Buttons */
+    .habit-badge-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .habit-badge-btn.done {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .habit-badge-btn.missed {
+      background: var(--danger-soft);
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+    .habit-mini-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      font-size: 11px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .habit-mini-btn.check:hover {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .habit-mini-btn.cross:hover {
+      background: var(--danger-soft);
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    /* Interactive WhatsApp In-Chat Card */
+    .wa-action-card {
+      background: var(--panel-2);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 12px;
+      padding: 11px 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-top: 2px;
+    }
+    .wa-action-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .wa-pill {
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 2px 7px;
+      border-radius: 6px;
+    }
+    .wa-quote {
+      font-size: 13px;
+      font-style: italic;
+      color: var(--text);
+      background: var(--bg);
+      border-left: 3px solid var(--accent);
+      padding: 6px 10px;
+      border-radius: 0 8px 8px 0;
+    }
+    .wa-draft-box {
+      background: rgba(16, 185, 129, 0.05);
+      border: 1px dashed rgba(16, 185, 129, 0.35);
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    .wa-draft-label {
+      font-size: 10.5px;
+      color: var(--accent);
+      font-weight: 600;
+      display: block;
+      margin-bottom: 3px;
+    }
+    .wa-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-top: 3px;
+      flex-wrap: wrap;
+    }
+
   </style>
 </head>
 <body>
@@ -558,24 +734,58 @@
 
     <div class="card">
       <div class="card-title">
-        <span>🏋️ Hábitos & Day Trade</span>
-        <span id="todayLabel">—</span>
+        <span>🏋️ Metas Disciplinares de Hoje</span>
+        <span id="todayLabel" style="font-weight:600;font-size:10px;">—</span>
       </div>
-      <div class="habit-row">
-        <span id="workoutLabel">Treino</span>
-        <button id="workoutBtn" class="pill-btn" onclick="toggleHabit('workoutDone')">Marcar</button>
+      
+      <!-- Treino -->
+      <div class="habit-row" id="rowWorkout">
+        <div style="display:flex;flex-direction:column;">
+          <strong id="workoutLabel" style="font-size:12px;">Treino</strong>
+          <span style="font-size:9.5px;color:var(--muted);">Jiu / Musculação</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <button id="workoutStatusBadge" class="habit-badge-btn" onclick="cycleHabit('workoutStatus')" title="Alternar status">⬜ Pendente</button>
+          <button class="habit-mini-btn check" onclick="setHabit('workoutStatus', 'done')" title="Concluído">✓</button>
+          <button class="habit-mini-btn cross" onclick="setHabit('workoutStatus', 'missed')" title="Não Realizado">✕</button>
+        </div>
       </div>
-      <div class="habit-row">
-        <span>💧 Água (2L)</span>
-        <button id="waterBtn" class="pill-btn" onclick="toggleHabit('waterDone')">Marcar</button>
+
+      <!-- Água (2L) -->
+      <div class="habit-row" id="rowWater">
+        <div style="display:flex;flex-direction:column;">
+          <strong style="font-size:12px;">Água (2L)</strong>
+          <span style="font-size:9.5px;color:var(--muted);">Hidratação celular</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <button id="waterStatusBadge" class="habit-badge-btn" onclick="cycleHabit('waterStatus')" title="Alternar status">⬜ Pendente</button>
+          <button class="habit-mini-btn check" onclick="setHabit('waterStatus', 'done')" title="Concluído">✓</button>
+          <button class="habit-mini-btn cross" onclick="setHabit('waterStatus', 'missed')" title="Não Realizado">✕</button>
+        </div>
       </div>
-      <div class="habit-row">
-        <span>Leitura (30 min)</span>
-        <button id="readingBtn" class="pill-btn" onclick="toggleHabit('readingDone')">Marcar</button>
+
+      <!-- Leitura -->
+      <div class="habit-row" id="rowReading">
+        <div style="display:flex;flex-direction:column;">
+          <strong style="font-size:12px;">Leitura (30m)</strong>
+          <span style="font-size:9.5px;color:var(--muted);">Expansão mental</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <button id="readingStatusBadge" class="habit-badge-btn" onclick="cycleHabit('readingStatus')" title="Alternar status">⬜ Pendente</button>
+          <button class="habit-mini-btn check" onclick="setHabit('readingStatus', 'done')" title="Concluído">✓</button>
+          <button class="habit-mini-btn cross" onclick="setHabit('readingStatus', 'missed')" title="Não Realizado">✕</button>
+        </div>
       </div>
-      <div class="habit-row">
-        <span>Day Trade (R$ 500)</span>
-        <button id="tradeBtn" class="pill-btn" onclick="quickTrade()">Registrar</button>
+
+      <!-- Day Trade -->
+      <div class="habit-row" id="rowTrade">
+        <div style="display:flex;flex-direction:column;">
+          <strong style="font-size:12px;">Day Trade B3</strong>
+          <span style="font-size:9.5px;color:var(--muted);">Meta R$ 500 (09-11h)</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <button id="tradeBtn" class="habit-badge-btn" onclick="quickTrade()" title="Registrar resultado">⬜ Registrar</button>
+        </div>
       </div>
     </div>
 
@@ -593,33 +803,35 @@
 
   <main class="main">
     <header class="topbar">
-      <button class="tool-btn mobile-menu-btn" onclick="toggleDrawer(true)">
-        <img src="/avatar.jpg?v=viking" alt="Kyrie" style="width:22px;height:22px;border-radius:50%;object-fit:cover;" />
-        <span>☰ Kyrie</span>
-      </button>
-      <div class="tabs" style="flex-wrap:wrap;">
-        <button class="tab-btn active" id="tabChat" onclick="switchTab('chat')">💬 Chat</button>
-        <button class="tab-btn" id="tabRadar" onclick="switchTab('radar')">📡 Radar</button>
-        <button class="tab-btn" id="tabCar" onclick="switchTab('car')">🚗 Carro / Idiomas</button>
-        <button class="tab-btn" id="tabFinance" onclick="switchTab('finance')">💰 Finanças</button>
-        <button class="tab-btn" id="tabContacts" onclick="switchTab('contacts')">👥 Contatos & Loja</button>
-        <button class="tab-btn" id="tabDossier" onclick="switchTab('dossier')">👤 Dossiê & Config</button>
-        <button class="tab-btn" id="tabInbox" onclick="switchTab('inbox')">
-          📥 WhatsApp <span class="count-badge" id="inboxBadge">0</span>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="tool-btn mobile-menu-btn" onclick="toggleDrawer(true)">
+          <img src="/avatar.jpg?v=viking" alt="Kyrie" style="width:20px;height:20px;border-radius:50%;object-fit:cover;" />
+          <span>Kyrie</span>
         </button>
+        <nav class="tabs">
+          <button class="tab-btn active" id="tabChat" onclick="switchTab('chat')">Chat</button>
+          <button class="tab-btn" id="tabRadar" onclick="switchTab('radar')">Radar</button>
+          <button class="tab-btn" id="tabCar" onclick="switchTab('car')">Idiomas</button>
+          <button class="tab-btn" id="tabFinance" onclick="switchTab('finance')">Finanças</button>
+          <button class="tab-btn" id="tabContacts" onclick="switchTab('contacts')">Contatos</button>
+          <button class="tab-btn" id="tabDossier" onclick="switchTab('dossier')">Dossiê & Config</button>
+          <button class="tab-btn" id="tabInbox" onclick="switchTab('inbox')">
+            WhatsApp <span class="count-badge" id="inboxBadge">0</span>
+          </button>
+        </nav>
       </div>
       <div class="topbar-right">
         <button class="tool-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Alternar Modo Claro / Escuro">☀️ Claro</button>
-        <select class="tool-btn active" id="providerSelect" onchange="changeProvider()" title="Motor de IA da Kyrie">
+        <select class="tool-btn" id="providerSelect" onchange="changeProvider()" title="Motor de IA da Kyrie" style="padding:4px 8px;font-size:11px;">
           <option value="auto">🧠 Auto</option>
-          <option value="openai">GPT-4o Mini</option>
+          <option value="openai">GPT-4o</option>
+          <option value="xai">Grok</option>
+          <option value="gemini">Gemini</option>
           <option value="mistral">Mistral</option>
           <option value="qwen">Qwen</option>
-          <option value="gemini">Gemini</option>
-          <option value="xai">Grok</option>
         </select>
-        <button class="tool-btn" id="handsFreeBtn" onclick="toggleHandsFree()">🎧 Ouvir</button>
-        <button class="tool-btn" id="notifBtn" onclick="enableNotifications()">🔔 Alertas</button>
+        <button class="tool-btn" id="handsFreeBtn" onclick="toggleHandsFree()" title="Escuta contínua por voz">🎧 Ouvir</button>
+        <button class="tool-btn" id="notifBtn" onclick="enableNotifications()" title="Alertas de voz e notificações">🔔</button>
       </div>
     </header>
 
@@ -2024,6 +2236,7 @@
 
       document.getElementById("todayLabel").textContent = s.weekday.shortDay + " • " + s.today.split("-").reverse().slice(0,2).join("/");
 
+      renderHabitsState(s.habits);
       document.getElementById("workoutLabel").textContent = s.habits.workoutName;
       const wb = document.getElementById("workoutBtn");
       wb.textContent = s.habits.workoutDone ? "✅ Feito" : "Marcar";
@@ -2067,19 +2280,48 @@
       }).join("");
 
       const mEl = document.getElementById("messages");
-      mEl.innerHTML = (s.history || []).map((m, idx) => `
-        <div class="msg-row ${m.role}">
-          ${m.role === "valkyrie" ? `<img class="msg-avatar" src="/avatar.jpg?v=viking" alt="Kyrie" />` : ""}
-          <div class="msg ${m.role}">
-            ${renderMarkdownLite(m.text)}
-            ${m.tools && m.tools.length ? `<div style="margin-top:6px;font-size:10.5px;color:var(--accent);">⚡ Ações: ${escapeHtml(m.tools.join(", "))}</div>` : ""}
-            <div class="msg-foot">
-              <span>${m.time || ""}${m.providerUsed ? ` • ${escapeHtml(m.providerUsed)}` : ""}</span>
-              ${m.role === "valkyrie" ? `<button class="replay-btn" onclick="replayMsg(${idx})" title="Ouvir novamente">🔊</button>` : ""}
+      mEl.innerHTML = (s.history || []).map((m, idx) => {
+        const isWa = m.whatsappData || (m.tools && (m.tools.includes("whatsapp_reply_card") || m.tools.includes("whatsapp_reply_received")));
+        if (isWa && m.whatsappData) {
+          const wd = m.whatsappData;
+          return `
+            <div class="msg-row valkyrie">
+              <img class="msg-avatar" src="/avatar.jpg?v=viking" alt="Kyrie" />
+              <div class="msg valkyrie" style="max-width:85%;padding:10px 14px;">
+                <div class="wa-action-card">
+                  <div class="wa-action-header">
+                    <span class="wa-pill">📱 WhatsApp • ${escapeHtml(wd.senderName || 'Mensagem')}</span>
+                    <span style="font-size:10.5px;color:var(--muted);">${m.time || ''}</span>
+                  </div>
+                  <div class="wa-quote">"${escapeHtml(wd.text || '')}"</div>
+                  <div class="wa-draft-box">
+                    <span class="wa-draft-label">💡 Resposta Sugerida pela Kyrie:</span>
+                    <div style="font-size:12.5px;color:var(--text);">"${escapeHtml(wd.draftReply || '')}"</div>
+                  </div>
+                  <div class="wa-actions">
+                    <button class="pill-btn done" style="font-size:11px;padding:4px 10px;" onclick="quickSendWaReply('${escapeHtml(wd.senderPhone || '')}', '${escapeHtml(wd.draftReply || '').replace(/'/g, "\\'")}')">🚀 Enviar Resposta</button>
+                    <button class="pill-btn" style="font-size:11px;padding:4px 9px;" onclick="useWaReplyInInput('${escapeHtml(wd.senderName || '')}', '${escapeHtml(wd.senderPhone || '')}')">✏️ Editar</button>
+                    <button class="pill-btn" style="font-size:11px;padding:4px 8px;color:var(--muted);" onclick="dismissWaInChat('${wd.id}', ${idx})">✓ Resolvido</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+        return `
+          <div class="msg-row ${m.role}">
+            ${m.role === "valkyrie" ? `<img class="msg-avatar" src="/avatar.jpg?v=viking" alt="Kyrie" />` : ""}
+            <div class="msg ${m.role}">
+              ${renderMarkdownLite(m.text)}
+              ${m.tools && m.tools.length && !m.tools.includes("whatsapp_reply_received") && !m.tools.includes("whatsapp_reply_card") ? `<div style="margin-top:4px;font-size:10px;color:var(--accent);">⚡ Ação: ${escapeHtml(m.tools.join(", "))}</div>` : ""}
+              <div class="msg-foot">
+                <span>${m.time || ""}${m.providerUsed ? ` • ${escapeHtml(m.providerUsed)}` : ""}</span>
+                ${m.role === "valkyrie" ? `<button class="replay-btn" onclick="replayMsg(${idx})" title="Ouvir novamente">🔊</button>` : ""}
+              </div>
             </div>
           </div>
-        </div>
-      `).join("");
+        `;
+      }).join("");
       mEl.scrollTop = mEl.scrollHeight;
 
       renderInbox(s.inbox, s.evolutionConfigured);
@@ -2580,6 +2822,101 @@
       await fetch("/api/dossier/curriculum/delete", { method: "POST" });
       renderCurriculumStatus(null);
       alert("Currículo desvinculado.");
+    }
+
+  
+    // --- Gerenciador de Hábitos Disciplinares (3 Estados: done, missed, pending) ---
+    async function setHabit(field, status) {
+      try {
+        const res = await fetch("/api/habits/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ [field]: status }),
+        });
+        const data = await res.json();
+        currentState.habits = data.habits;
+        renderHabitsState(currentState.habits);
+      } catch (err) {
+        console.error("Erro ao atualizar hábito:", err);
+      }
+    }
+
+    function cycleHabit(field) {
+      const current = currentState?.habits?.[field] || "pending";
+      const nextMap = { pending: "done", done: "missed", missed: "pending" };
+      setHabit(field, nextMap[current] || "done");
+    }
+
+    function renderHabitsState(h) {
+      if (!h) return;
+      const labels = { done: "✅ Concluído", missed: "❌ Não Feito", pending: "⬜ Pendente" };
+
+      const wb = document.getElementById("workoutStatusBadge");
+      if (wb) {
+        const st = h.workoutStatus || (h.workoutDone ? "done" : "pending");
+        wb.textContent = labels[st] || "⬜ Pendente";
+        wb.className = "habit-badge-btn " + st;
+      }
+
+      const wtr = document.getElementById("waterStatusBadge");
+      if (wtr) {
+        const st = h.waterStatus || (h.waterDone ? "done" : "pending");
+        wtr.textContent = labels[st] || "⬜ Pendente";
+        wtr.className = "habit-badge-btn " + st;
+      }
+
+      const rb = document.getElementById("readingStatusBadge");
+      if (rb) {
+        const st = h.readingStatus || (h.readingDone ? "done" : "pending");
+        rb.textContent = labels[st] || "⬜ Pendente";
+        rb.className = "habit-badge-btn " + st;
+      }
+
+      const tb = document.getElementById("tradeBtn");
+      if (tb) {
+        tb.textContent = h.tradeText && h.tradeText !== "⬜" ? h.tradeText : "⬜ Registrar";
+        tb.className = "habit-badge-btn " + (h.tradeText && h.tradeText.includes("✅") ? "done" : h.tradeText && h.tradeText.includes("❌") ? "missed" : "");
+      }
+    }
+
+    // --- Ações Rápidas de WhatsApp Dentro do Chat ---
+    async function quickSendWaReply(phone, replyText) {
+      if (!phone || !replyText) return;
+      if (!confirm("Disparar agora esta resposta pelo WhatsApp?\n\n\"" + replyText + "\"")) return;
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: "Envie agora para o telefone " + phone + " a seguinte mensagem no WhatsApp: " + replyText,
+            speak: false
+          })
+        });
+        const data = await res.json();
+        alert("✅ Mensagem enviada via WhatsApp com sucesso!");
+        loadState();
+      } catch (err) {
+        alert("Erro no envio: " + err.message);
+      }
+    }
+
+    function useWaReplyInInput(senderName, phone) {
+      const input = document.getElementById("chatInput");
+      if (input) {
+        input.value = "Kyrie, responda para " + senderName + " no WhatsApp: ";
+        input.focus();
+      }
+    }
+
+    async function dismissWaInChat(itemId, idx) {
+      if (itemId) {
+        await fetch("/api/inbox/dismiss", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: itemId })
+        }).catch(() => {});
+      }
+      loadState();
     }
 
   </script>

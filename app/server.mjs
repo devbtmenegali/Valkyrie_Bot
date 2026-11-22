@@ -7,7 +7,7 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { execFile, spawn } from "node:child_process";
+import { execFile, execFileSync, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { sendWhatsAppMessage } from "../whatsapp/send.mjs";
 import { runValkyrieAI, runSimplePromptAI, getConfiguredProviders, loadMemoryFacts, saveMemoryFact, deleteMemoryFact } from "./brain.mjs";
@@ -159,12 +159,12 @@ function cleanTextForSpeech(text) {
 function stopMacSpeech() {
   speechSeq++;
   if (activeAudioProc) {
-    try { activeAudioProc.kill("SIGTERM"); } catch {}
+    try { activeAudioProc.kill("SIGKILL"); } catch {}
     activeAudioProc = null;
   }
   if (IS_MAC) {
-    try { execFile("killall", ["afplay"], () => {}); } catch {}
-    try { execFile("killall", ["say"], () => {}); } catch {}
+    try { execFileSync("killall", ["-9", "afplay"], { stdio: "ignore" }); } catch {}
+    try { execFileSync("killall", ["-9", "say"], { stdio: "ignore" }); } catch {}
   }
   broadcastEvent("speaking", { speaking: false });
 }
@@ -503,15 +503,22 @@ async function ingestWhatsAppMessage({ senderName, senderPhone, text, simulated 
   saveInbox(inbox);
   sbInsertInbox(item).catch(() => {});
 
-  // Se for resposta a uma mensagem que a Kyrie enviou (ou família), já avisa direto no Chat principal também!
+  // Se for resposta a uma mensagem que a Kyrie enviou (ou família), já avisa direto no Chat principal com Card Resolutivo!
   if (!simulated && (isReplyToKyrie || isFamily)) {
     const history = loadHistory();
     const chatAlert = {
       role: "valkyrie",
       time: nowTimeStr(),
-      text: `📩 **${item.senderName} respondeu no WhatsApp:**\n"${text.trim()}"`,
-      tools: ["whatsapp_reply_received"],
-      providerUsed: "WhatsApp ao vivo",
+      text: `📱 **WhatsApp de ${item.senderName}:**\n"${text.trim()}"\n\n💡 **Sugestão da Kyrie:**\n"${item.draftReply || "Olá, já estou verificando e te retorno em breve."}"`,
+      tools: ["whatsapp_reply_card"],
+      whatsappData: {
+        id: item.id,
+        senderName: item.senderName,
+        senderPhone: item.senderPhone,
+        text: text.trim(),
+        draftReply: item.draftReply || "Olá, já estou verificando e te retorno em breve.",
+      },
+      providerUsed: "WhatsApp • Resposta Rápida",
     };
     history.push(chatAlert);
     saveHistory(history);
@@ -534,45 +541,99 @@ async function ingestWhatsAppMessage({ senderName, senderPhone, text, simulated 
   return item;
 }
 
-// ---------- Habits ----------
+// ---------- Habits (Suporte Completo a 3 Estados: Pendente, Concluído, Não Realizado) ----------
+function parseHabitStatus(cell) {
+  if (!cell) return "pending";
+  if (cell.includes("✅")) return "done";
+  if (cell.includes("❌")) return "missed";
+  return "pending";
+}
+
+function formatHabitStatus(status, label) {
+  const icon = status === "done" ? "✅" : status === "missed" ? "❌" : "⬜";
+  return label ? `${icon} ${label}` : icon;
+}
+
 function getTodayHabits() {
   const today = getLocalDateStr(0);
   const info = getWeekdayInfo(0);
   const defaults = {
     date: today, day: info.shortDay, workoutName: info.workoutShort,
-    workoutDone: false, waterDone: false, readingDone: false, tradeText: "⬜", notes: "",
+    workoutStatus: "pending", workoutDone: false,
+    waterStatus: "pending", waterDone: false,
+    readingStatus: "pending", readingDone: false,
+    tradeStatus: "pending", tradeText: "⬜", notes: "",
   };
   if (!fs.existsSync(HABITS_PATH)) return defaults;
   const lines = fs.readFileSync(HABITS_PATH, "utf8").split(/\r?\n/);
   const row = lines.find((l) => l.startsWith(`| ${today} |`));
   if (!row) return defaults;
   const cols = row.split("|").map((c) => c.trim()).filter(Boolean);
-  const hasWater = cols.length >= 6 && (lines[12] || "").includes("Água");
-  if (hasWater) {
-    return {
-      date: today, day: cols[1] || info.shortDay, workoutName: info.workoutShort,
-      workoutDone: (cols[2] || "").includes("✅"),
-      waterDone: (cols[3] || "").includes("✅"),
-      readingDone: (cols[4] || "").includes("✅"),
-      tradeText: cols[5] || "⬜", notes: cols[6] || "",
-    };
-  }
+
+  const workoutStatus = parseHabitStatus(cols[2]);
+  const waterStatus = parseHabitStatus(cols[3]);
+  const readingStatus = parseHabitStatus(cols[4]);
+  const tradeCell = cols[5] || "⬜";
+  const tradeStatus = parseHabitStatus(tradeCell);
+
   return {
-    date: today, day: cols[1] || info.shortDay, workoutName: info.workoutShort,
-    workoutDone: (cols[2] || "").includes("✅"),
-    waterDone: false,
-    readingDone: (cols[3] || "").includes("✅"),
-    tradeText: cols[4] || "⬜", notes: cols[5] || "",
+    date: today,
+    day: cols[1] || info.shortDay,
+    workoutName: info.workoutShort,
+    workoutStatus,
+    workoutDone: workoutStatus === "done",
+    waterStatus,
+    waterDone: waterStatus === "done",
+    readingStatus,
+    readingDone: readingStatus === "done",
+    tradeStatus,
+    tradeText: tradeCell,
+    notes: cols[6] || "",
   };
 }
 
 function saveTodayHabits(update) {
   const cur = getTodayHabits();
   const next = { ...cur, ...update };
-  const workoutCell = `${next.workoutDone ? "✅" : "⬜"} ${next.workoutName}`;
-  const waterCell = next.waterDone ? "✅" : "⬜";
-  const readingCell = next.readingDone ? "✅" : "⬜";
-  const tradeCell = next.tradeText || "⬜";
+
+  // Suporte a status explícito ("done", "missed", "pending") ou booleans legados
+  if (update.workoutStatus) next.workoutStatus = update.workoutStatus;
+  else if (update.workoutDone !== undefined) next.workoutStatus = update.workoutDone ? "done" : "pending";
+
+  if (update.waterStatus) next.waterStatus = update.waterStatus;
+  else if (update.waterDone !== undefined) next.waterStatus = update.waterDone ? "done" : "pending";
+
+  if (update.readingStatus) next.readingStatus = update.readingStatus;
+  else if (update.readingDone !== undefined) next.readingStatus = update.readingDone ? "done" : "pending";
+
+  if (update.tradeStatus) next.tradeStatus = update.tradeStatus;
+  if (update.tradeText) next.tradeText = update.tradeText;
+
+  next.workoutDone = next.workoutStatus === "done";
+  next.waterDone = next.waterStatus === "done";
+  next.readingDone = next.readingStatus === "done";
+
+  // Se algum hábito foi explicitamente marcado como NÃO REALIZADO ("missed"), grava alerta disciplinar
+  const disciplinaryItems = [];
+  if (next.workoutStatus === "missed") disciplinaryItems.push(`Treino (${next.workoutName})`);
+  if (next.waterStatus === "missed") disciplinaryItems.push("Água (2L)");
+  if (next.readingStatus === "missed") disciplinaryItems.push("Leitura (30 min)");
+  if (next.tradeStatus === "missed") disciplinaryItems.push("Day Trade");
+
+  if (disciplinaryItems.length) {
+    saveMemoryFact(MEMORY_PATH, {
+      pillar: "Disciplina & Metas",
+      fact: `Atenção disciplinar em ${next.date}: Hábito(s) marcado(s) como NÃO REALIZADO(S): ${disciplinaryItems.join(", ")}. Cobrar retomada da consistência!`,
+    });
+  }
+
+  const workoutCell = formatHabitStatus(next.workoutStatus, next.workoutName);
+  const waterCell = formatHabitStatus(next.waterStatus, "2L");
+  const readingCell = formatHabitStatus(next.readingStatus, "30m");
+  const tradeCell = next.tradeText && (next.tradeText.includes("✅") || next.tradeText.includes("❌"))
+    ? next.tradeText
+    : formatHabitStatus(next.tradeStatus, next.tradeText && next.tradeText !== "⬜" ? next.tradeText : "Meta R$ 500");
+
   const newRow = `| ${next.date} | ${next.day} | ${workoutCell} | ${waterCell} | ${readingCell} | ${tradeCell} | ${next.notes || ""} |`;
 
   let content = fs.existsSync(HABITS_PATH) ? fs.readFileSync(HABITS_PATH, "utf8") : "";

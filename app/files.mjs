@@ -172,8 +172,10 @@ export async function processIncomingFile({
   const isBook = lowerPrompt.includes("livro") || lowerPrompt.includes("book") || lowerPrompt.includes("playbook") || lowerPrompt.includes("biblioteca") || lowerPrompt.includes("estude");
   if (isBook) {
     let bookContent = textContent || "";
+    if (!bookContent) {
+      bookContent = await extractDocumentText(targetPath, appDir);
+    }
     if (!bookContent && fileBase64) {
-      // Se for texto/md em base64
       try { bookContent = Buffer.from(fileBase64, "base64").toString("utf8"); } catch {}
     }
     const bookTitle = fileName.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");

@@ -11,6 +11,7 @@ import { getHolidayInfo } from "./holidays.mjs";
 import { sbSaveMemory } from "./db.mjs";
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "./calendar.mjs";
 import { loadFounderDossier } from "./dossier.mjs";
+import { loadAllLibraryContent } from "./skills/wealth.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.join(__dirname, ".env");
@@ -432,6 +433,11 @@ ${projectsStr}
 ${dossier.rules}
 `;
 
+  const libraryContent = loadAllLibraryContent(__dirname);
+  const libraryBlock = libraryContent
+    ? `\n\n[BIBLIOTECA E PLAYBOOKS ESTRATÉGICOS DA KYRIE (HORMOZI, BUFFETT, DENNIS, DALIO, TALEB)]\n${libraryContent.slice(0, 4500)}\n`
+    : "";
+
   return `${agentsPrompt}
 
 [CONTEXTO EM TEMPO REAL]
@@ -463,7 +469,7 @@ ${dossierBlock}
 6. **POSTURA PROSPECTIVA, PROATIVA E DE MENTORIA BASEADA NO PERFIL REAL:**
    - **DNA & Alavancas Únicas do Bruno:** Bruno une a visão analítica de um **Economista** (alocação de capital, juros compostos, balanço e valuation) com a autoridade científica de um **Mestre em Ciências da Saúde & Fisiologia** (autoridade médica/acadêmica inquestionável para validar o ProntoMed e CliniMind perante médicos e fundos) e a resiliência de um **Empreendedor Executivo** (10 anos de direção na CORE Sports, agora na GluN, Nossa Casa e HealthTechs).
    - **Proatividade & Prospectiva Ativa:** NUNCA espere apenas o Bruno pedir. Monitore proativamente os prazos do Kanban, cobre metas em aberto, questione gargalos operacionais, antecipe oportunidades macroeconômicas e guie cada decisão diária conectando suas habilidades ao plano de expansão do império.
-   - **Guardiã Inegociável da Família e Saúde:** O almoço em família com **Val, Lucca e Caio** é sagrado. Monitore a agenda do Google Calendar e alerte de forma veemente caso compromissos ou reuniões ameacem invadir a janela de almoço ou o tempo de qualidade familiar.${memoryBlock}`;
+   - **Guardiã Inegociável da Família e Saúde:** O almoço em família com **Val, Lucca e Caio** é sagrado. Monitore a agenda do Google Calendar e alerte de forma veemente caso compromissos ou reuniões ameacem invadir a janela de almoço ou o tempo de qualidade familiar.${libraryBlock}${memoryBlock}`;
 }
 
 function makeToolExecutor({ todayStr, memoryPath, helpers, executedTools }) {
