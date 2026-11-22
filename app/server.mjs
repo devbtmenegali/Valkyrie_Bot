@@ -14,6 +14,7 @@ import { runValkyrieAI, runSimplePromptAI, getConfiguredProviders, loadMemoryFac
 import { getHolidayInfo } from "./holidays.mjs";
 import { fetchCalendarEvents, processCalendarQueue } from "./calendar.mjs";
 import { searchEmails, readEmail, createEmailDraft, sendEmail, getEmailBriefing } from "./gmail.mjs";
+import { downloadAndTranscribeEvolutionMedia } from "./audio-transcribe.mjs";
 import { fetchPreMarketData, fetchEconomicCalendar } from "./market.mjs";
 import { listContacts, upsertContact, getUpcomingBirthdays, buildSupplierMessage, searchEvolutionContacts } from "./skills/contacts.mjs";
 import { listFinance, addFinanceEntry, updateFinanceEntry, deleteFinanceEntry, markFinancePaid, getFinanceSummary, buildCollectionMessage } from "./skills/finance.mjs";
@@ -415,12 +416,94 @@ async function getAllInbox() {
   return loadInbox();
 }
 
+async function fetchEvolutionLiveChat(senderQuery) {
+  const baseUrl = (process.env.EVOLUTION_API_URL || "").replace(/\/+$/, "");
+  const apiKey = process.env.EVOLUTION_API_KEY || "";
+  const instance = process.env.EVOLUTION_INSTANCE || "";
+  if (!baseUrl || !apiKey || !instance) return null;
+
+  try {
+    const chatsRes = await fetch(`${baseUrl}/chat/findChats/${encodeURIComponent(instance)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: apiKey },
+      body: JSON.stringify({}),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!chatsRes.ok) return null;
+    const chats = await chatsRes.json();
+    if (!Array.isArray(chats)) return null;
+
+    const q = senderQuery.toLowerCase();
+    const foundChat = chats.find((c) =>
+      (c.name || "").toLowerCase().includes(q) ||
+      (c.pushName || "").toLowerCase().includes(q)
+    );
+    if (!foundChat) return null;
+
+    const jid = foundChat.remoteJid;
+    const msgsRes = await fetch(`${baseUrl}/chat/findMessages/${encodeURIComponent(instance)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: apiKey },
+      body: JSON.stringify({
+        where: { key: { remoteJid: jid } },
+        limit: 15,
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!msgsRes.ok) return null;
+    const msgsData = await msgsRes.json();
+    const records = msgsData?.messages?.records || (Array.isArray(msgsData) ? msgsData : []);
+    
+    const parsed = [];
+    for (const r of records) {
+      const fromMe = Boolean(r.key?.fromMe);
+      const isAudio = Boolean(r.message?.audioMessage);
+      let text = r.message?.conversation || r.message?.extendedTextMessage?.text || "";
+      if (isAudio) {
+        const sec = r.message?.audioMessage?.seconds || 0;
+        let transcription = r.message?.audioMessage?.transcription;
+        if (!transcription && r.key?.id) {
+          transcription = await downloadAndTranscribeEvolutionMedia(r.key.id);
+        }
+        text = transcription ? `🎙️ [Áudio de ${sec}s transcrito]: "${transcription}"` : `🎙️ [Áudio de ${sec}s]`;
+      }
+      if (text) {
+        parsed.push({
+          senderName: fromMe ? "Você (Bruno)" : (foundChat.pushName || foundChat.name || "Contato"),
+          senderPhone: (r.key?.remoteJidAlt || jid).replace(/\D/g, ""),
+          text,
+          time: new Date((r.messageTimestamp || 0) * 1000).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+          date: new Date((r.messageTimestamp || 0) * 1000).toLocaleDateString("pt-BR"),
+          fromMe,
+          isAudio,
+        });
+      }
+    }
+    return { contact: foundChat.pushName || foundChat.name, messages: parsed };
+  } catch (err) {
+    console.error("[Live Evolution Chat Search]", err.message);
+    return null;
+  }
+}
+
 async function getPendingWhatsApp(senderFilter = "") {
   const list = (await getAllInbox()).filter((i) => !i.simulated);
   const q = String(senderFilter || "").trim().toLowerCase();
   if (q) {
-    // Quando Bruno pergunta por alguém específico (ex: "Val"), retorna TODAS as últimas mensagens dessa pessoa
+    // Quando Bruno pergunta por alguém específico (ex: "Joni", "Val"), busca no inbox e também ao vivo no WhatsApp!
     const matched = list.filter((i) => (i.senderName || "").toLowerCase().includes(q)).slice(0, 10);
+    if (!matched.length) {
+      const live = await fetchEvolutionLiveChat(senderFilter);
+      if (live && live.messages.length) {
+        return {
+          count: live.messages.length,
+          filter: senderFilter,
+          contact: live.contact,
+          items: live.messages.slice(-8),
+          source: "live_evolution_api",
+        };
+      }
+    }
     return { count: matched.length, filter: senderFilter, items: matched };
   }
   const pending = list.filter((i) => i.status === "pending");
@@ -1740,14 +1823,28 @@ Seja cirúrgica, inspiradora, matematicamente sólida e orientada a patrimônio 
       return res.end("Unauthorized");
     }
     const payload = await readJsonBody(req);
-    const fromMe = Boolean(payload?.data?.key?.fromMe);
-    const remoteJid = payload?.data?.key?.remoteJid || "";
+    const key = payload?.data?.key || {};
+    const fromMe = Boolean(key.fromMe);
+    const remoteJid = key.remoteJid || "";
     const isGroup = remoteJid.endsWith("@g.us");
     const msg = payload?.data?.message || {};
-    const text = (msg.conversation || msg.extendedTextMessage?.text || msg.imageMessage?.caption || msg.videoMessage?.caption || "").trim();
+
+    let text = (msg.conversation || msg.extendedTextMessage?.text || msg.imageMessage?.caption || msg.videoMessage?.caption || "").trim();
+
+    // Se for mensagem de áudio, baixa e transcreve automaticamente
+    if (!text && msg.audioMessage) {
+      const audioSec = msg.audioMessage.seconds || 0;
+      let transcription = msg.audioMessage.transcription;
+      if (!transcription && key.id) {
+        transcription = await downloadAndTranscribeEvolutionMedia(key.id);
+      }
+      text = transcription ? `🎙️ [Áudio de ${audioSec}s]: "${transcription}"` : `🎙️ [Mensagem de áudio recebida - ${audioSec}s]`;
+    }
+
     console.log(`[Webhook Evolution] path=${url.pathname} fromMe=${fromMe} jid=${remoteJid} textLen=${text.length}`);
     if (!fromMe && text) {
-      const senderPhone = remoteJid.replace(/\D/g, "");
+      const realDigits = (key.remoteJidAlt || remoteJid).replace(/\D/g, "");
+      const senderPhone = realDigits;
       const senderName = (payload?.data?.pushName || senderPhone) + (isGroup ? " (Grupo)" : "");
       await ingestWhatsAppMessage({ senderName, senderPhone, text, simulated: false, isGroup });
     }

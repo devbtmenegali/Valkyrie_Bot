@@ -19,6 +19,8 @@
 - [/] **KAN-07:** Ligar Função do WhatsApp / Secretária IA *(Em andamento)*
 
 ## 🏥 Pilar 2: CliniMind
+- [ ] (22/11, 00:24) Enviar mensagem para Maitê (CENSUPEG) sobre licenciamento do CliniMind
+- [ ] (22/11, 00:24) Iniciar atividade do BlueOcean, empresa de MKT digital (contrato de 4 meses)
 - [/] **KAN-03:** Implementar novo Workspace / Gestão e KPIs *(Em andamento)*
 - [/] **KAN-17:** Automação Agêntica de Postagens no Instagram e TikTok *(Em andamento)*
 - [/] **KAN-18:** Conferir PDFs de Livros Salvos / Direitos Autorais *(Em andamento)*
@@ -32,6 +34,13 @@
 
 ## 🏠 Pilar 3: Nossa Casa (Varejo)
 - *(Nenhuma pendência registrada ainda — envie comandos ou ideias para popular)*
+
+---
+
+## ⚽ Projeto: GluN Learn & Sistemas Esportivos (com Prof. Joni Márcio)
+- [ ] **GLUNLEARN-01:** Corrigir o sistema de jogo 4-2-5-1 (reparar movimentações e troca incorreta de jogadores apontada pelo Prof. Joni no áudio)
+- [ ] **GLUNLEARN-02:** Ajustar a animação e movimentação dos bonequinhos nos demais sistemas validados
+- [ ] **GLUNLEARN-03:** Alinhar com o Prof. Joni Márcio após correções (ele finaliza a revisão dos outros sistemas amanhã/depois)
 
 ---
 

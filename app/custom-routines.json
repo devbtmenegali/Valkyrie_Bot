@@ -1,0 +1,10 @@
+[
+  {
+    "id": "b789f0b6-867f-44ce-b293-40c10d53e8ff",
+    "title": "Horário de Musculação aos Fins de Semana",
+    "trigger": "Sábados, domingos e feriados",
+    "action_instructions": "A musculação deve ser agendada entre 09h00 e 15h00.",
+    "target_pillar": "Saúde/Hábitos",
+    "createdAt": "2026-11-22T13:17:01.279Z"
+  }
+]
