@@ -1263,6 +1263,17 @@ const proactiveEngine = createProactiveEngine({
     sbAppendMessage(botMsg).catch(() => {});
     broadcastEvent("notification", { title, body: text, tag });
     if (IS_MAC && voiceAlertsEnabled) speakMac(text);
+
+    // Disparo proativo automático direto no WhatsApp do Bruno
+    const targetPhone = String(process.env.BRUNO_WHATSAPP_NUMBER || "").replace(/\D/g, "");
+    if (targetPhone && process.env.EVOLUTION_API_URL && process.env.EVOLUTION_API_KEY) {
+      try {
+        await sendWhatsAppMessage(text.trim(), targetPhone);
+        console.log(`[Proactive WhatsApp] Enviado com sucesso para ${targetPhone}: ${title}`);
+      } catch (err) {
+        console.error(`[Proactive WhatsApp Erro]`, err.message);
+      }
+    }
   },
 });
 proactiveEngine.start();
