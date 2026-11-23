@@ -557,12 +557,30 @@ function isObviousNoise(text) {
 
 const recentOutboundPhones = new Map(); // phone -> timestamp (para nunca descartar respostas a quem a Kyrie acabou de escrever!)
 
-async function ingestWhatsAppMessage({ senderName, senderPhone, text, simulated = false, isGroup = false }) {
+async function ingestWhatsAppMessage({ senderName, senderPhone, text, simulated = false, isGroup = false, waMessageId = "", timeStr = "", msgTimestampMs = 0 }) {
   // Pré-filtro gratuito: descarta ruído óbvio em grupos ou risadas/emojis sem gastar tokens
   if (!simulated && isGroup && isObviousNoise(text)) {
     return null;
   }
   const cleanPhone = String(senderPhone || "").replace(/\D/g, "");
+  const itemId = waMessageId ? `wa_${waMessageId}` : crypto.randomUUID();
+
+  // Deduplicação estrita: se já existe no inbox local/Supabase por waMessageId ou remetente + texto base, descarta!
+  const inbox = await getAllInbox();
+  const cleanBase = String(text || "").split("\n\n🧠 Kyrie:")[0].replace(/[\s\r\n\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]+/gu, "").toLowerCase().slice(0, 30);
+  const alreadyExists = inbox.some((i) => {
+    if (waMessageId && (i.waMessageId === waMessageId || i.id === itemId)) return true;
+    const existingPhone = (i.senderPhone || "").replace(/\D/g, "");
+    if (existingPhone.slice(-8) === cleanPhone.slice(-8)) {
+      const existingBase = String(i.text || "").split("\n\n🧠 Kyrie:")[0].replace(/[\s\r\n\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]+/gu, "").toLowerCase().slice(0, 30);
+      if (existingBase === cleanBase && cleanBase.length > 2) return true;
+    }
+    return false;
+  });
+  if (alreadyExists) {
+    return null;
+  }
+
   const lastOut = recentOutboundPhones.get(cleanPhone) || 0;
   const isReplyToKyrie = Date.now() - lastOut < 60 * 60 * 1000; // resposta dentro de 1h
   const isFamily = /^(val|lucca|caio)\b/i.test(String(senderName || "").trim());
@@ -574,7 +592,8 @@ async function ingestWhatsAppMessage({ senderName, senderPhone, text, simulated 
   // Conversas individuais privadas (1-a-1) que não sejam ruído puro NUNCA devem ser auto-descartadas
   const keepVisible = (!isGroup && !isObviousNoise(text)) || analysis.needsBruno || isReplyToKyrie || isFamily || simulated;
   const item = {
-    id: crypto.randomUUID(),
+    id: itemId,
+    waMessageId: waMessageId || null,
     senderName: senderName || senderPhone || "Contato WhatsApp",
     senderPhone: cleanPhone,
     text: analysis.summary ? `${text.trim()}\n\n🧠 Kyrie: ${analysis.summary}` : text.trim(),
@@ -583,11 +602,10 @@ async function ingestWhatsAppMessage({ senderName, senderPhone, text, simulated 
     draftReply: analysis.draftReply,
     status: keepVisible ? "pending" : "dismissed",
     simulated,
-    time: nowTimeStr(),
-    createdAt: new Date().toISOString(),
+    time: timeStr || nowTimeStr(),
+    createdAt: msgTimestampMs ? new Date(msgTimestampMs).toISOString() : new Date().toISOString(),
   };
 
-  const inbox = await getAllInbox();
   inbox.unshift(item);
   saveInbox(inbox);
   sbInsertInbox(item).catch(() => {});
@@ -1273,20 +1291,23 @@ function sendJson(res, status, obj) {
   res.end(JSON.stringify(obj));
 }
 
-function serveStatic(res, filePath, contentType) {
+function serveStatic(res, filePath, contentType, isHead = false) {
   if (!fs.existsSync(filePath)) { res.writeHead(404); return res.end("Not found"); }
   res.writeHead(200, { "Content-Type": contentType });
+  if (isHead) return res.end();
   res.end(fs.readFileSync(filePath));
 }
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || "/", `http://localhost:${PORT}`);
+  const isGetOrHead = req.method === "GET" || req.method === "HEAD";
+  const isHead = req.method === "HEAD";
 
-  if (req.method === "GET" && url.pathname === "/") return serveStatic(res, path.join(__dirname, "index.html"), "text/html; charset=utf-8");
-  if (req.method === "GET" && url.pathname === "/manifest.json") return serveStatic(res, path.join(__dirname, "manifest.json"), "application/manifest+json; charset=utf-8");
-  if (req.method === "GET" && url.pathname === "/sw.js") return serveStatic(res, path.join(__dirname, "sw.js"), "application/javascript; charset=utf-8");
-  if (req.method === "GET" && url.pathname === "/icon.svg") return serveStatic(res, path.join(__dirname, "icon.svg"), "image/svg+xml");
-  if (req.method === "GET" && url.pathname === "/avatar.jpg") return serveStatic(res, path.join(__dirname, "valkyrie-avatar.jpg"), "image/jpeg");
+  if (isGetOrHead && url.pathname === "/") return serveStatic(res, path.join(__dirname, "index.html"), "text/html; charset=utf-8", isHead);
+  if (isGetOrHead && url.pathname === "/manifest.json") return serveStatic(res, path.join(__dirname, "manifest.json"), "application/manifest+json; charset=utf-8", isHead);
+  if (isGetOrHead && url.pathname === "/sw.js") return serveStatic(res, path.join(__dirname, "sw.js"), "application/javascript; charset=utf-8", isHead);
+  if (isGetOrHead && url.pathname === "/icon.svg") return serveStatic(res, path.join(__dirname, "icon.svg"), "image/svg+xml", isHead);
+  if (isGetOrHead && url.pathname === "/avatar.jpg") return serveStatic(res, path.join(__dirname, "valkyrie-avatar.jpg"), "image/jpeg", isHead);
 
   if (req.method === "GET" && url.pathname === "/api/health") {
     const supabaseReady = isSupabaseEnabled() ? await sbCheckReady() : false;
@@ -1877,7 +1898,7 @@ Seja cirúrgica, inspiradora, matematicamente sólida e orientada a patrimônio 
       const realDigits = (key.remoteJidAlt || remoteJid).replace(/\D/g, "");
       const senderPhone = realDigits;
       const senderName = (payload?.data?.pushName || senderPhone) + (isGroup ? " (Grupo)" : "");
-      await ingestWhatsAppMessage({ senderName, senderPhone, text, simulated: false, isGroup });
+      await ingestWhatsAppMessage({ senderName, senderPhone, text, simulated: false, isGroup, waMessageId: key.id });
     }
     return sendJson(res, 200, { received: true });
   }

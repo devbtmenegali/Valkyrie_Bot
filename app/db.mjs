@@ -10,7 +10,7 @@ function getConfig() {
   return { url, key, enabled: Boolean(url && key) };
 }
 
-async function sbFetch(path, options = {}) {
+export async function sbFetch(path, options = {}) {
   const { url, key, enabled } = getConfig();
   if (!enabled) return null;
   try {
