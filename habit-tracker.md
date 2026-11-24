@@ -17,3 +17,4 @@
 | 2026-11-20 | Sex | ⬜ Jiu-Jitsu | ⬜ | ⬜ | ❌ Feriado - B3 fechada | Remover meta de Day Trade do dia 20/11/2026 |
 | 2026-11-21 | Sáb | ❌ Musculação | ✅ 2L | ✅ 30m | ⬜ Meta R$ 500 |  |
 | 2026-11-22 | Dom | ⬜ Musculação | ⬜ 2L | ✅ 30m | ⬜ Meta R$ 500 |  |
+| 2026-11-23 | Seg | ⬜ Musculação | ✅ 2L | ✅ 30m | ✅ 610 | Fechamento do Day Trade foi R$ 830. |

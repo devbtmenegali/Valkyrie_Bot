@@ -8,6 +8,7 @@ app/contacts.json
 app/finance.json
 app/language-sessions.json
 app/radar-cache.json
+app/proactive-fired.json
 Valkyrie.app/
 .DS_Store
 node_modules/

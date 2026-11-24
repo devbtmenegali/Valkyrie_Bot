@@ -1,6 +1,7 @@
 # Kanban & Backlog — BTM / Valkyrie
 
 ## 🏢 Pilar 1: GluN Capital S.A. (Fase 1 & 2)
+- [x] (23/11, 15:33) Preparar conteúdo para entrevista na Rádio Litoral sobre a 12K Missão Doação
 - [ ] **GLUN-01:** Validação final da Minuta v1.2 do Estatuto Social e Regimento Interno com Advogado Societário
 - [ ] **GLUN-02:** Definição do Núcleo Fundador (mín. 2 acionistas) e coleta de documentos
 - [ ] **GLUN-03:** Ajuste do Capital Social Inicial + Cláusula de Capital Autorizado (Art. 168) — definir valor nominal único da ação (R$ 1.000 vs R$ 3.000)

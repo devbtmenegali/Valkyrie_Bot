@@ -850,6 +850,8 @@
         </div>
         <div style="display:flex;align-items:center;gap:4px;">
           <button id="tradeBtn" class="habit-badge-btn" onclick="quickTrade()" title="Registrar resultado">⬜ Registrar</button>
+          <button class="habit-mini-btn check" onclick="setHabit('tradeStatus', 'done')" title="Meta Atingida">✓</button>
+          <button class="habit-mini-btn cross" onclick="setHabit('tradeStatus', 'missed')" title="Não Realizado / Stop">✕</button>
         </div>
       </div>
     </div>
@@ -2644,12 +2646,23 @@
     async function quickTrade() {
       const val = prompt("Resultado do Day Trade de hoje (ex: R$ 500 ou -R$ 200):", "R$ 500");
       if (!val) return;
-      const res = await fetch("/api/habits/update", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tradeText: val.includes("✅") || val.includes("❌") ? val : "✅ " + val }),
-      });
-      currentState.habits = (await res.json()).habits;
-      renderState(currentState);
+      const isNegative = val.includes("-");
+      const cleanVal = val.replace(/^[⬜✅❌\s]+/g, "").trim();
+      const tradeStatus = isNegative ? "missed" : "done";
+      const icon = isNegative ? "❌" : "✅";
+      const tradeText = `${icon} ${cleanVal}`;
+      try {
+        const res = await fetch("/api/habits/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tradeText, tradeStatus }),
+        });
+        const data = await res.json();
+        currentState.habits = data.habits;
+        renderHabitsState(currentState.habits);
+      } catch (err) {
+        console.error("Erro ao registrar trade:", err);
+      }
     }
 
     async function simulateWhatsApp() {
@@ -3122,7 +3135,9 @@
       const tb = document.getElementById("tradeBtn");
       if (tb) {
         tb.textContent = h.tradeText && h.tradeText !== "⬜" ? h.tradeText : "⬜ Registrar";
-        tb.className = "habit-badge-btn " + (h.tradeText && h.tradeText.includes("✅") ? "done" : h.tradeText && h.tradeText.includes("❌") ? "missed" : "");
+        const isDone = h.tradeStatus === "done" || (h.tradeText && h.tradeText.includes("✅"));
+        const isMissed = h.tradeStatus === "missed" || (h.tradeText && h.tradeText.includes("❌"));
+        tb.className = "habit-badge-btn " + (isDone ? "done" : isMissed ? "missed" : "");
       }
     }
 

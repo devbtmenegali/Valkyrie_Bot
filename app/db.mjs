@@ -86,21 +86,38 @@ export async function sbSaveMemory({ pillar = "Geral", fact }) {
 
 // ---------- Habits ----------
 export async function sbGetHabit(dateStr) {
+  try {
+    const kv = await sbGetKV(`habits_${dateStr}`);
+    if (kv && typeof kv === "object" && kv.date) {
+      return kv;
+    }
+  } catch {}
+
   const rows = await sbFetch(`valkyrie_habits?date=eq.${encodeURIComponent(dateStr)}&limit=1`);
   if (!Array.isArray(rows) || !rows.length) return null;
   const r = rows[0];
+  const workoutStatus = r.workout_done ? "done" : "pending";
+  const readingStatus = r.reading_done ? "done" : "pending";
+  const tradeText = r.trade_text || "⬜ Meta R$ 500";
+  const tradeStatus = tradeText.includes("✅") ? "done" : tradeText.includes("❌") ? "missed" : "pending";
   return {
     date: r.date,
     day: r.day_label,
     workoutName: r.workout_name,
+    workoutStatus,
     workoutDone: Boolean(r.workout_done),
+    waterStatus: "pending",
+    waterDone: false,
+    readingStatus,
     readingDone: Boolean(r.reading_done),
-    tradeText: r.trade_text || "⬜",
+    tradeStatus,
+    tradeText,
     notes: r.notes || "",
   };
 }
 
 export async function sbUpsertHabit(h) {
+  await sbSetKV(`habits_${h.date}`, h).catch(() => {});
   return sbFetch("valkyrie_habits", {
     method: "POST",
     headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
@@ -114,7 +131,7 @@ export async function sbUpsertHabit(h) {
       notes: h.notes || "",
       updated_at: new Date().toISOString(),
     }),
-  });
+  }).catch(() => {});
 }
 
 // ---------- Key-Value (Kanban Markdown sync) ----------

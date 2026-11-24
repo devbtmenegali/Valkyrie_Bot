@@ -665,12 +665,16 @@ function parseHabitStatus(cell) {
   if (!cell) return "pending";
   if (cell.includes("✅")) return "done";
   if (cell.includes("❌")) return "missed";
+  const clean = cell.replace(/^[⬜\s]+/g, "").trim();
+  // Se tem valor numérico registrado mas NÃO é apenas a frase padrão da meta ("Meta R$ 500")
+  if (clean && !clean.toLowerCase().includes("meta") && /\d+/.test(clean)) return "done";
   return "pending";
 }
 
 function formatHabitStatus(status, label) {
   const icon = status === "done" ? "✅" : status === "missed" ? "❌" : "⬜";
-  return label ? `${icon} ${label}` : icon;
+  const cleanLabel = (label || "").replace(/^[⬜✅❌\s]+/g, "").trim();
+  return cleanLabel ? `${icon} ${cleanLabel}` : icon;
 }
 
 function getTodayHabits() {
@@ -681,18 +685,18 @@ function getTodayHabits() {
     workoutStatus: "pending", workoutDone: false,
     waterStatus: "pending", waterDone: false,
     readingStatus: "pending", readingDone: false,
-    tradeStatus: "pending", tradeText: "⬜", notes: "",
+    tradeStatus: "pending", tradeText: "⬜ Meta R$ 500", notes: "",
   };
   if (!fs.existsSync(HABITS_PATH)) return defaults;
   const lines = fs.readFileSync(HABITS_PATH, "utf8").split(/\r?\n/);
   const row = lines.find((l) => l.startsWith(`| ${today} |`));
   if (!row) return defaults;
-  const cols = row.split("|").map((c) => c.trim()).filter(Boolean);
+  const cols = row.split("|").slice(1, -1).map((c) => c.trim());
 
   const workoutStatus = parseHabitStatus(cols[2]);
   const waterStatus = parseHabitStatus(cols[3]);
   const readingStatus = parseHabitStatus(cols[4]);
-  const tradeCell = cols[5] || "⬜";
+  const tradeCell = cols[5] || "⬜ Meta R$ 500";
   const tradeStatus = parseHabitStatus(tradeCell);
 
   return {
@@ -715,22 +719,41 @@ function saveTodayHabits(update) {
   const cur = getTodayHabits();
   const next = { ...cur, ...update };
 
-  // Suporte a status explícito ("done", "missed", "pending") ou booleans legados
+  // 1. Treino
   if (update.workoutStatus) next.workoutStatus = update.workoutStatus;
   else if (update.workoutDone !== undefined) next.workoutStatus = update.workoutDone ? "done" : "pending";
+  next.workoutDone = next.workoutStatus === "done";
 
+  // 2. Água (2L)
   if (update.waterStatus) next.waterStatus = update.waterStatus;
   else if (update.waterDone !== undefined) next.waterStatus = update.waterDone ? "done" : "pending";
+  next.waterDone = next.waterStatus === "done";
 
+  // 3. Leitura (30m)
   if (update.readingStatus) next.readingStatus = update.readingStatus;
   else if (update.readingDone !== undefined) next.readingStatus = update.readingDone ? "done" : "pending";
-
-  if (update.tradeStatus) next.tradeStatus = update.tradeStatus;
-  if (update.tradeText) next.tradeText = update.tradeText;
-
-  next.workoutDone = next.workoutStatus === "done";
-  next.waterDone = next.waterStatus === "done";
   next.readingDone = next.readingStatus === "done";
+
+  // 4. Day Trade (sincronização bidirecional rigorosa entre tradeStatus e tradeText)
+  if (update.tradeText) {
+    const raw = String(update.tradeText).trim();
+    if (raw.includes("✅")) {
+      next.tradeStatus = "done";
+      next.tradeText = raw;
+    } else if (raw.includes("❌") || raw.includes("-")) {
+      next.tradeStatus = "missed";
+      next.tradeText = raw.includes("❌") ? raw : `❌ ${raw}`;
+    } else {
+      next.tradeStatus = update.tradeStatus || "done";
+      const icon = next.tradeStatus === "done" ? "✅" : next.tradeStatus === "missed" ? "❌" : "⬜";
+      next.tradeText = `${icon} ${raw.replace(/^[⬜✅❌\s]+/g, "")}`;
+    }
+  } else if (update.tradeStatus) {
+    next.tradeStatus = update.tradeStatus;
+    const cleanValue = (next.tradeText || "").replace(/^[⬜✅❌\s]+/g, "").trim() || "Meta R$ 500";
+    const icon = next.tradeStatus === "done" ? "✅" : next.tradeStatus === "missed" ? "❌" : "⬜";
+    next.tradeText = `${icon} ${cleanValue}`;
+  }
 
   // Se algum hábito foi explicitamente marcado como NÃO REALIZADO ("missed"), grava alerta disciplinar
   const disciplinaryItems = [];
@@ -764,6 +787,9 @@ function saveTodayHabits(update) {
     content = content.trimEnd() + "\n" + newRow + "\n";
   }
   fs.writeFileSync(HABITS_PATH, content, "utf8");
+
+  // Salva no Supabase KV o estado consolidado completo
+  sbSetKV(`habits_${next.date}`, next).catch(() => {});
   sbUpsertHabit(next).catch(() => {});
   return next;
 }
@@ -1382,7 +1408,10 @@ const server = http.createServer(async (req, res) => {
     ]);
     if (remoteKanban?.markdown) fs.writeFileSync(KANBAN_PATH, remoteKanban.markdown, "utf8");
     const history = remoteMsgs && remoteMsgs.length ? remoteMsgs : loadHistory();
-    const habits = remoteHabit || getTodayHabits();
+    const localHabits = getTodayHabits();
+    const habits = IS_MAC
+      ? { ...(remoteHabit || {}), ...localHabits }
+      : (remoteHabit || localHabits);
     return sendJson(res, 200, {
       today: getLocalDateStr(0),
       weekday: getWeekdayInfo(0),
